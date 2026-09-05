@@ -79,7 +79,7 @@ export function MenuScreen({
       </button>
 
       <p className="text-center text-xs text-slate-500">
-        Panah / WASD / geser untuk bergerak · Spasi / P untuk jeda
+        Panah / WASD / geser untuk bergerak · Esc / Spasi / P untuk jeda
       </p>
       <div className="text-xs text-slate-500">Dinding mematikan — jangan menabrak!</div>
     </motion.div>

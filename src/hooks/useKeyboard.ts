@@ -19,7 +19,7 @@ const KEY_MAP: Record<string, Direction> = {
 export function useKeyboard(onDirection: (d: Direction) => void, onPause?: () => void): void {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === ' ' || e.key.toLowerCase() === 'p') {
+      if (e.key === ' ' || e.key.toLowerCase() === 'p' || e.key === 'Escape') {
         e.preventDefault()
         onPause?.()
         return

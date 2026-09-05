@@ -5,7 +5,7 @@ Permainan Ular (Snake) yang mulus dan serius — dibangun dengan React + Vite + 
 ## Fitur
 
 - **Grid 25×25** dengan rendering mulus (lerp antartick, 60fps)
-- **Kontrol ganda**: keyboard (Panah / WASD + Spasi/P jeda), swipe sentuh, dan D-pad di layar
+- **Kontrol adaptif**: desktop pakai keyboard (Panah / WASD, **Esc / Spasi / P** untuk jeda); mobile dapat swipe sentuh + D-pad di layar dan tombol jeda
 - **3 level kecepatan**: Santai / Normal / Ngebut (kecepatan bertambah tiap makan, cap minimal)
 - **Skor & panjang ular**; rekor tertinggi disimpan di `localStorage`
 - **Antrian belokan** (maks 3 pending) — belokan 180° ditolak, dinding & tabrakan mematikan

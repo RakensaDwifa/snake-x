@@ -5,9 +5,18 @@ interface HUDProps {
   muted: boolean
   onToggleMute: () => void
   onPause: () => void
+  showPause: boolean
 }
 
-export function HUD({ score, length, highScore, muted, onToggleMute, onPause }: HUDProps) {
+export function HUD({
+  score,
+  length,
+  highScore,
+  muted,
+  onToggleMute,
+  onPause,
+  showPause,
+}: HUDProps) {
   return (
     <div className="mb-3 flex w-full max-w-md items-center justify-between text-sm">
       <div className="flex items-center gap-3">
@@ -34,14 +43,16 @@ export function HUD({ score, length, highScore, muted, onToggleMute, onPause }: 
         >
           {muted ? '🔇' : '🔊'}
         </button>
-        <button
-          type="button"
-          onClick={onPause}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-800 bg-surface-900/60 text-snake-300 active:scale-90"
-          aria-label="Jeda"
-        >
-          ⏸
-        </button>
+        {showPause && (
+          <button
+            type="button"
+            onClick={onPause}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-800 bg-surface-900/60 text-snake-300 active:scale-90"
+            aria-label="Jeda"
+          >
+            ⏸
+          </button>
+        )}
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useSnakeGame } from './hooks/useSnakeGame.ts'
 import { useKeyboard } from './hooks/useKeyboard.ts'
 import { useSwipe } from './hooks/useSwipe.ts'
+import { useIsMobile } from './hooks/useIsMobile.ts'
 import { BoardRenderer } from './render/BoardRenderer.tsx'
 import { HUD } from './components/HUD.tsx'
 import { Controls } from './components/Controls.tsx'
@@ -15,6 +16,7 @@ import type { Direction } from './types/game.ts'
 
 export default function App() {
   const game = useSnakeGame()
+  const isMobile = useIsMobile()
   const boardRef = useRef<HTMLDivElement | null>(null)
   const screenRef = useRef(game.screen)
   useEffect(() => {
@@ -90,6 +92,7 @@ export default function App() {
             muted={game.muted}
             onToggleMute={game.toggleMute}
             onPause={game.pause}
+            showPause={isMobile}
           />
 
           <div
@@ -133,7 +136,7 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          {game.screen !== 'gameover' && (
+          {isMobile && game.screen !== 'gameover' && (
             <Controls
               onChangeDirection={game.screen === 'playing' ? game.changeDirection : undefined}
               onPause={game.pause}
