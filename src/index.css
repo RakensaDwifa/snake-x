@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+
+  --color-snake-50: #ecfdf5;
+  --color-snake-300: #6ee7b7;
+  --color-snake-400: #34d399;
+  --color-snake-500: #10b981;
+  --color-snake-600: #059669;
+  --color-snake-800: #065f46;
+
+  --color-food: #f43f5e;
+
+  --color-surface-950: #030712;
+  --color-surface-900: #0b1220;
+  --color-surface-800: #111a2e;
+
+  --animate-glow-pulse: glow-pulse 1.8s ease-in-out infinite;
+
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.35);
+    }
+    50% {
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.7);
+    }
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-surface-950);
+    color: #e5e7eb;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
