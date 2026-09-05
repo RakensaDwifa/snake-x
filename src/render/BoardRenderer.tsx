@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { MutableRefObject } from 'react'
 import { GRID_SIZE } from '../core/constants.ts'
-import type { Position } from '../types/game.ts'
+import { shakeOffset, updateFloats, updateParticles } from './particles.ts'
+import type { FloatText, Particle } from './particles.ts'
+import type { Position, PowerUp } from '../types/game.ts'
 
 export interface BoardRendererProps {
   snakeRef: MutableRefObject<Position[]>
   prevSnakeRef: MutableRefObject<Position[]>
   foodRef: MutableRefObject<Position | null>
   flashRef: MutableRefObject<number>
+  shakeRef: MutableRefObject<number>
+  particlesRef: MutableRefObject<Particle[]>
+  floatsRef: MutableRefObject<FloatText[]>
+  obstaclesRef: MutableRefObject<Position[]>
+  powerUpsRef: MutableRefObject<PowerUp[]>
+  levelUpAtRef: MutableRefObject<number>
   onReady: (draw: (interp: number) => void) => void
 }
 
@@ -22,10 +30,17 @@ export function BoardRenderer({
   prevSnakeRef,
   foodRef,
   flashRef,
+  shakeRef,
+  particlesRef,
+  floatsRef,
+  obstaclesRef,
+  powerUpsRef,
+  levelUpAtRef,
   onReady,
 }: BoardRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const onReadyRef = useRef(onReady)
+  const lastRenderRef = useRef(0)
   useEffect(() => {
     onReadyRef.current = onReady
   }, [onReady])
@@ -37,6 +52,7 @@ export function BoardRenderer({
       const ctx = canvas.getContext('2d')
       if (!ctx) return
 
+      const now = performance.now()
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       const rect = canvas.getBoundingClientRect()
       const width = rect.width
@@ -47,7 +63,21 @@ export function BoardRenderer({
         canvas.width = targetWidth
         canvas.height = targetHeight
       }
+
+      const frameDt = lastRenderRef.current === 0 ? 0 : now - lastRenderRef.current
+      lastRenderRef.current = now
+
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      if (!reduced) {
+        particlesRef.current = updateParticles(particlesRef.current, frameDt)
+        floatsRef.current = updateFloats(floatsRef.current, frameDt)
+      }
+
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      if (!reduced) {
+        const { dx, dy } = shakeOffset(now, shakeRef.current)
+        ctx.translate(dx, dy)
+      }
 
       const cell = width / GRID_SIZE
       const gap = Math.max(0.5, cell * 0.06)
@@ -57,12 +87,20 @@ export function BoardRenderer({
 
       const foodCell = foodRef.current
       if (foodCell) {
-        drawFood(ctx, foodCell, cell, performance.now())
+        drawFood(ctx, foodCell, cell, now)
+      }
+
+      for (const obstacle of obstaclesRef.current) {
+        drawObstacle(ctx, obstacle, cell)
+      }
+
+      for (const powerUp of powerUpsRef.current) {
+        drawPowerUp(ctx, powerUp, cell, now)
       }
 
       const cur = snakeRef.current
       const prev = prevSnakeRef.current
-      const flashing = performance.now() - flashRef.current < 300
+      const flashing = now - flashRef.current < 300
 
       for (let i = 0; i < cur.length; i++) {
         const curr = cur[i]
@@ -71,8 +109,18 @@ export function BoardRenderer({
         const py = lerp(old.y, curr.y, interp) * cell + gap / 2
         drawSegment(ctx, px, py, cell - gap, i, cur.length, flashing && i === 0)
       }
+
+      if (!reduced) {
+        drawParticles(ctx, particlesRef.current, cell)
+        drawFloats(ctx, floatsRef.current, cell)
+      }
+
+      const levelUpAge = now - levelUpAtRef.current
+      if (!reduced && levelUpAge >= 0 && levelUpAge < 700) {
+        drawLevelUpText(ctx, width, height, levelUpAge / 700)
+      }
     },
-    [flashRef, foodRef, prevSnakeRef, snakeRef],
+    [flashRef, floatsRef, foodRef, levelUpAtRef, obstaclesRef, particlesRef, powerUpsRef, prevSnakeRef, shakeRef, snakeRef],
   )
 
   useEffect(() => {
@@ -158,6 +206,120 @@ function drawFood(ctx: CanvasRenderingContext2D, food: Position, cell: number, n
   ctx.beginPath()
   ctx.arc(x + size * 0.3, y + size * 0.3, size * 0.12, 0, Math.PI * 2)
   ctx.fill()
+}
+
+function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Position, cell: number) {
+  const pad = cell * 0.14
+  const x = obstacle.x * cell + pad
+  const y = obstacle.y * cell + pad
+  const size = cell - pad * 2
+
+  ctx.fillStyle = 'rgba(71, 85, 105, 0.55)'
+  ctx.fillRect(x, y, size, size)
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)'
+  ctx.lineWidth = 1.5
+  ctx.strokeRect(x + 1, y + 1, size - 2, size - 2)
+}
+
+function drawPowerUp(ctx: CanvasRenderingContext2D, powerUp: PowerUp, cell: number, now: number) {
+  const cx = (powerUp.pos.x + 0.5) * cell
+  const cy = (powerUp.pos.y + 0.5) * cell
+
+  const pulse = 1 + Math.sin(now / 220) * 0.12
+  const halo = cell * 0.85 * pulse
+  const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, halo)
+  gradient.addColorStop(0, 'rgba(167, 139, 250, 0.55)')
+  gradient.addColorStop(1, 'rgba(167, 139, 250, 0)')
+  ctx.fillStyle = gradient
+  ctx.beginPath()
+  ctx.arc(cx, cy, halo, 0, Math.PI * 2)
+  ctx.fill()
+
+  const size = cell * 0.5
+  ctx.shadowColor = 'rgba(167, 139, 250, 0.95)'
+  ctx.shadowBlur = 14
+  drawStar(ctx, cx, cy, size)
+  ctx.shadowBlur = 0
+
+  ctx.fillStyle = 'rgba(250, 245, 255, 0.95)'
+  ctx.font = `bold ${Math.round(cell * 0.3)}px Inter, sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('SLOW', cx, cy + size * 1.4)
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+}
+
+function drawStar(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  outerRadius: number,
+) {
+  const innerRadius = outerRadius * 0.45
+  ctx.beginPath()
+  for (let i = 0; i < 10; i++) {
+    const radius = i % 2 === 0 ? outerRadius : innerRadius
+    const angle = (Math.PI / 5) * i - Math.PI / 2
+    const x = cx + Math.cos(angle) * radius
+    const y = cy + Math.sin(angle) * radius
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.closePath()
+  ctx.fillStyle = '#a78bfa'
+  ctx.fill()
+}
+
+function drawLevelUpText(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  progress: number,
+) {
+  const alpha = progress < 0.25 ? progress / 0.25 : Math.max(0, 1 - (progress - 0.25) / 0.75)
+  ctx.globalAlpha = alpha
+  ctx.font = `800 ${Math.round(height * 0.16)}px Sora, Inter, sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#fbbf24'
+  ctx.shadowColor = 'rgba(251, 191, 36, 0.6)'
+  ctx.shadowBlur = 24
+  ctx.fillText('LEVEL UP', width / 2, height * 0.42)
+  ctx.shadowBlur = 0
+  ctx.globalAlpha = 1
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+}
+
+function drawParticles(ctx: CanvasRenderingContext2D, particles: Particle[], cell: number) {
+  for (const p of particles) {
+    const lifeRatio = p.age / p.duration
+    const alpha = Math.max(0, 1 - lifeRatio)
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = p.color
+    ctx.beginPath()
+    ctx.arc(p.x * cell, p.y * cell, p.size * cell * (1 - lifeRatio * 0.5), 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.globalAlpha = 1
+}
+
+function drawFloats(ctx: CanvasRenderingContext2D, floats: FloatText[], cell: number) {
+  ctx.font = `bold ${Math.round(cell * 0.9)}px Inter, sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  for (const f of floats) {
+    const ratio = f.age / f.duration
+    const x = f.x * cell
+    const y = f.y * cell - ratio * cell * 1.2
+    ctx.globalAlpha = Math.max(0, 1 - ratio)
+    ctx.fillStyle = '#6ee7b7'
+    ctx.fillText(f.text, x, y)
+  }
+  ctx.globalAlpha = 1
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
 }
 
 function roundRect(

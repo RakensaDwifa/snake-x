@@ -31,6 +31,18 @@ export const OPPOSITE_DIRECTION: Record<Direction, Direction> = {
 }
 
 export const STORAGE_KEY = 'snake-x-highscore'
+export const STATS_KEY = 'snake-x-stats'
+
+export const LEVEL_FOOD_INTERVAL = 6
+export const MAX_LEVEL = 6
+export const OBSTACLE_CELLS_PER_LEVEL = 4
+export const SAFE_START_RADIUS = 3
+
+export const POWERUP_EVERY_FOOD = 4
+export const POWERUP_LIFETIME_TICKS = 9
+export const POWERUP_SLOW_FACTOR = 1.5
+export const POWERUP_SLOW_DURATION_MS = 3200
+export const POWERUP_SCORE_BONUS = 2
 
 export const SPEED_NAME: Record<SpeedMode, string> = {
   slow: 'Santai',

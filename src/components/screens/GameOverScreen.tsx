@@ -1,20 +1,46 @@
 import { motion } from 'framer-motion'
 import { GRID_SIZE } from '../../core/constants.ts'
+import { CONFETTI_COLORS } from '../../render/particles.ts'
+import type { GameStats } from '../../types/game.ts'
 
 interface GameOverScreenProps {
   score: number
   length: number
   highScore: number
+  stats: GameStats
   newBest: boolean
   won: boolean
   onRestart: () => void
   onMenu: () => void
 }
 
+interface ConfettiPiece {
+  id: number
+  left: number
+  delay: number
+  duration: number
+  rotate: number
+  drift: number
+  color: string
+  size: number
+}
+
+const CONFETTI: ConfettiPiece[] = Array.from({ length: 32 }, (_, id) => ({
+  id,
+  left: Math.random() * 100,
+  delay: Math.random() * 0.9,
+  duration: 1.6 + Math.random() * 1.4,
+  rotate: Math.random() * 360,
+  drift: (Math.random() - 0.5) * 60,
+  color: CONFETTI_COLORS[id % CONFETTI_COLORS.length],
+  size: 5 + Math.random() * 6,
+}))
+
 export function GameOverScreen({
   score,
   length,
   highScore,
+  stats,
   newBest,
   won,
   onRestart,
@@ -26,8 +52,22 @@ export function GameOverScreen({
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden bg-black/60 backdrop-blur-sm"
     >
+      {won && (
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          {CONFETTI.map((c) => (
+            <motion.div
+              key={c.id}
+              initial={{ y: -20, x: 0, opacity: 1, rotate: 0 }}
+              animate={{ y: 300, x: c.drift, rotate: c.rotate, opacity: [1, 1, 0] }}
+              transition={{ duration: c.duration, delay: c.delay, ease: 'easeIn' }}
+              className="absolute top-0 rounded-sm"
+              style={{ left: `${c.left}%`, width: c.size, height: c.size * 1.6, backgroundColor: c.color }}
+            />
+          ))}
+        </div>
+      )}
       <div className="mx-4 w-full max-w-xs rounded-2xl border border-surface-800 bg-surface-900/95 p-6 text-center">
         <h2
           className={`font-display text-2xl font-bold ${won ? 'text-snake-300' : 'text-rose-400'}`}
@@ -49,6 +89,10 @@ export function GameOverScreen({
 
         <p className="mt-3 text-xs text-slate-400">
           Isi papan penuh ({GRID_SIZE}×{GRID_SIZE}) untuk menang.
+        </p>
+
+        <p className="mt-3 text-xs text-slate-400">
+          Game ke-{Math.max(1, stats.games)} · Menang {stats.wins}× · Panjang maks {stats.maxLength}
         </p>
 
         <div className="mt-5 flex flex-col gap-2.5">

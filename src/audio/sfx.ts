@@ -108,4 +108,15 @@ export const sfx = {
     blip(784, 90, 'triangle', 0.07, 180)
     blip(1046, 200, 'triangle', 0.08, 270)
   },
+  level(): void {
+    if (debounceNote()) return
+    blip(392, 120, 'triangle', 0.07)
+    blip(523, 120, 'triangle', 0.07, 110)
+    blip(659, 160, 'triangle', 0.08, 220)
+  },
+  powerUp(): void {
+    if (debounceNote()) return
+    blip(880, 70, 'sine', 0.07)
+    blip(1174, 120, 'sine', 0.07, 70)
+  },
 }

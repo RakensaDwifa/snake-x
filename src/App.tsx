@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { useSnakeGame } from './hooks/useSnakeGame.ts'
 import { useKeyboard } from './hooks/useKeyboard.ts'
 import { useSwipe } from './hooks/useSwipe.ts'
@@ -53,7 +53,8 @@ export default function App() {
   useSwipe(getBoard, ensureActive)
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center bg-surface-950 px-4 py-6">
+    <MotionConfig reducedMotion="user">
+      <div className="flex min-h-full flex-col items-center justify-center bg-surface-950 px-4 py-6">
       <AnimatePresence mode="wait">
         {game.screen === 'splash' && (
           <SplashScreen
@@ -85,15 +86,16 @@ export default function App() {
           transition={{ duration: 0.3 }}
           className="flex w-full max-w-md flex-col items-center"
         >
-          <HUD
-            score={game.score}
-            length={game.length}
-            highScore={game.highScore}
-            muted={game.muted}
-            onToggleMute={game.toggleMute}
-            onPause={game.pause}
-            showPause={isMobile}
-          />
+<HUD
+              score={game.score}
+              length={game.length}
+              level={game.level}
+              highScore={game.highScore}
+              muted={game.muted}
+              onToggleMute={game.toggleMute}
+              onPause={game.pause}
+              showPause={game.screen === 'playing'}
+            />
 
           <div
             ref={boardRef}
@@ -105,6 +107,12 @@ export default function App() {
               prevSnakeRef={game.prevSnakeRef}
               foodRef={game.foodRef}
               flashRef={game.flashRef}
+              shakeRef={game.shakeRef}
+              particlesRef={game.particlesRef}
+              floatsRef={game.floatsRef}
+              obstaclesRef={game.obstaclesRef}
+              powerUpsRef={game.powerUpsRef}
+              levelUpAtRef={game.levelUpAtRef}
               onReady={(draw) =>
                 game.registerRenderer((interp) => {
                   draw(interp)
@@ -127,6 +135,7 @@ export default function App() {
                   score={game.score}
                   length={game.length}
                   highScore={game.highScore}
+                  stats={game.stats}
                   newBest={game.score === game.highScore && game.score > 0}
                   won={game.won}
                   onRestart={handleStart}
@@ -146,6 +155,7 @@ export default function App() {
           )}
         </motion.div>
       )}
-    </div>
+      </div>
+    </MotionConfig>
   )
 }

@@ -15,9 +15,20 @@ export interface StepResult {
   ate: boolean
   dead: boolean
   win: boolean
+  powerUpEaten: PowerUpKind | null
+}
+
+export type PowerUpKind = 'slow'
+
+export interface PowerUp {
+  pos: Position
+  kind: PowerUpKind
+  bornTick: number
 }
 
 export interface GameStats {
-  score: number
-  length: number
+  games: number
+  totalFood: number
+  maxLength: number
+  wins: number
 }
