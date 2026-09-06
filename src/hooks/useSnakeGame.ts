@@ -35,6 +35,7 @@ import {
 } from '../render/particles.ts'
 import type { FloatText, Particle } from '../render/particles.ts'
 import * as storage from '../lib/storage.ts'
+import { loadAchievements, saveAchievements, checkAchievements } from '../core/achievements.ts'
 import type {
   Direction,
   GameScreen,
@@ -69,6 +70,7 @@ export interface SnakeGameController {
   volume: number
   musicOn: boolean
   effectUntil: { slow: number; double: number }
+  achievements: Set<string>
   snakeRef: React.MutableRefObject<Position[]>
   prevSnakeRef: React.MutableRefObject<Position[]>
   foodRef: React.MutableRefObject<Position | null>
@@ -271,6 +273,12 @@ export function useSnakeGame(): SnakeGameController {
           playSeconds: prev.playSeconds + Math.round(playMsRef.current / 1000),
         }
         storage.saveStats(next)
+        const unlocked = loadAchievements()
+        const newly = checkAchievements(next, { bestCombo: bestComboRef.current, goldEaten: goldEatenRef.current }, unlocked)
+        if (newly.length > 0) {
+          newly.forEach((id) => unlocked.add(id))
+          saveAchievements(unlocked)
+        }
         return next
       })
       applyScreen('gameover')
@@ -416,7 +424,7 @@ export function useSnakeGame(): SnakeGameController {
       setCombo(comboRef.current)
       scoreRef.current += gained
       eatAtRef.current = now
-      sfx.eat()
+      sfx.eat(comboRef.current)
       foodsEatenRef.current += 1
       const ateAt = foodRef.current ?? result.snake[0]
       particlesRef.current.push(
@@ -436,6 +444,7 @@ export function useSnakeGame(): SnakeGameController {
       const nextFood = spawnFood(result.snake)
       foodRef.current = nextFood
       setScore(scoreRef.current)
+      music.setIntensity(Math.min(1, scoreRef.current / 100))
       setLength(result.snake.length)
       loopRef.current?.setTickMs(computeTickMs())
       if (nextFood === null) {
@@ -627,6 +636,8 @@ export function useSnakeGame(): SnakeGameController {
     }
   }, [pause])
 
+  const achievements = loadAchievements()
+
   return {
     screen,
     score,
@@ -644,6 +655,7 @@ export function useSnakeGame(): SnakeGameController {
     volume,
     musicOn,
     effectUntil,
+    achievements,
     snakeRef,
     prevSnakeRef,
     foodRef,

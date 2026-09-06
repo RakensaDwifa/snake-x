@@ -85,6 +85,7 @@ export default function App() {
             musicOn={game.musicOn}
             wrapMode={game.wrapMode}
             stats={game.stats}
+            achievements={game.achievements}
             onSpeed={game.setSpeedMode}
             onStart={handleStart}
             onToggleMute={game.toggleMute}

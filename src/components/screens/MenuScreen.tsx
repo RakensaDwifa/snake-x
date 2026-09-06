@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { SpeedMode, GameStats } from '../../types/game.ts'
 import { SPEED_NAME, GRID_SIZE } from '../../core/constants.ts'
+import { ACHIEVEMENTS } from '../../core/achievements.ts'
+import { loadOnboarded, saveOnboarded } from '../../core/onboarding.ts'
+import { OnboardingOverlay } from './OnboardingOverlay.tsx'
 
 interface MenuScreenProps {
   highScore: number
@@ -11,6 +14,7 @@ interface MenuScreenProps {
   musicOn: boolean
   wrapMode: boolean
   stats: GameStats
+  achievements: Set<string>
   onSpeed: (m: SpeedMode) => void
   onStart: () => void
   onToggleMute: () => void
@@ -35,6 +39,7 @@ export function MenuScreen({
   musicOn,
   wrapMode,
   stats,
+  achievements,
   onSpeed,
   onStart,
   onToggleMute,
@@ -43,6 +48,19 @@ export function MenuScreen({
   onVolume,
 }: MenuScreenProps) {
   const [showStats, setShowStats] = useState(false)
+  const [showAchievements, setShowAchievements] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
+  useEffect(() => {
+    if (!loadOnboarded() && stats.games === 0) {
+      setShowOnboarding(true)
+    }
+  }, [stats.games])
+
+  const finishOnboarding = () => {
+    saveOnboarded()
+    setShowOnboarding(false)
+  }
 
   return (
     <motion.div
@@ -161,6 +179,13 @@ export function MenuScreen({
         </button>
         <button
           type="button"
+          onClick={() => setShowAchievements(true)}
+          className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
+        >
+          🏆 Pencapaian
+        </button>
+        <button
+          type="button"
           onClick={onStart}
           className="flex-1 rounded-2xl bg-snake-500 px-6 py-4 text-lg font-bold text-surface-950 shadow-[0_0_30px_rgba(16,185,129,0.5)] transition hover:bg-snake-400 active:scale-95"
         >
@@ -226,6 +251,55 @@ export function MenuScreen({
           </motion.div>
         </motion.div>
       )}
+
+      {showAchievements && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setShowAchievements(false)}
+        >
+          <motion.div
+            className="w-full max-w-md rounded-2xl border border-surface-800 bg-surface-900/95 p-6"
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.92 }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-xl font-bold text-white">🏆 Pencapaian</h2>
+              <button
+                type="button"
+                onClick={() => setShowAchievements(false)}
+                className="text-slate-400 hover:text-white"
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4 max-h-80 overflow-y-auto">
+              {ACHIEVEMENTS.map((a) => {
+                const unlocked = achievements.has(a.id)
+                return (
+                  <AchievementCard key={a.id} achievement={a} unlocked={unlocked} />
+                )
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAchievements(false)}
+              className="w-full rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-2.5 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
+            >
+              Tutup
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {showOnboarding && <OnboardingOverlay isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} onFinish={finishOnboarding} />}
     </motion.div>
   )
 }
@@ -235,6 +309,23 @@ function StatCard({ label, value, colSpan = 1 }: { label: string; value: string 
     <div className={`rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 ${colSpan === 2 ? 'col-span-2' : ''}`}>
       <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
       <div className="font-display text-xl font-bold text-slate-200">{value}</div>
+    </div>
+  )
+}
+
+function AchievementCard({ achievement, unlocked }: { achievement: typeof ACHIEVEMENTS[0]; unlocked: boolean }) {
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${
+        unlocked
+          ? 'border-snake-400 bg-snake-500/15 text-snake-300'
+          : 'border-surface-800 bg-surface-950/50 text-slate-400 opacity-50'
+      }`}
+      title={achievement.description}
+    >
+      <span className="text-lg">{achievement.icon}</span>
+      <span className="font-semibold">{achievement.title}</span>
+      {unlocked && <span className="ml-auto text-snake-400">✓</span>}
     </div>
   )
 }

@@ -104,10 +104,11 @@ function debounceNote(): boolean {
 }
 
 export const sfx = {
-  eat(): void {
+  eat(combo = 1): void {
     if (debounceNote()) return
-    blip(440, 90, 'square', 0.07)
-    blip(660, 120, 'square', 0.06, 60)
+    const baseFreq = 440 * Math.pow(2, Math.min(combo, 5) / 12)
+    blip(baseFreq, 90, 'square', 0.07)
+    blip(baseFreq * 1.5, 120, 'square', 0.06, 60)
   },
   turn(): void {
     if (debounceNote()) return

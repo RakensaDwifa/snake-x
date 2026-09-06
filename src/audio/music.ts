@@ -1,7 +1,7 @@
 import { loadMusicOn, saveMusicOn } from '../lib/storage.ts'
 import { getMasterGain, getSharedContext, isMuted } from './sfx.ts'
 
-const STEP_MS = 280
+const BASE_STEP_MS = 280
 const LOOP_STEPS = 16
 const HORIZON_MS = 500
 
@@ -12,6 +12,7 @@ let timer: ReturnType<typeof setInterval> | null = null
 let nextStepAt = 0
 let stepIndex = 0
 let musicOn = loadMusicOn()
+let currentStepMs = BASE_STEP_MS
 
 function midiToFreq(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12)
@@ -55,7 +56,7 @@ function tick(): void {
   const horizon = ctx.currentTime + HORIZON_MS / 1000
   while (nextStepAt < horizon) {
     if (musicOn && !isMuted()) scheduleStep(stepIndex, nextStepAt)
-    nextStepAt += STEP_MS / 1000
+    nextStepAt += currentStepMs / 1000
     stepIndex = (stepIndex + 1) % LOOP_STEPS
   }
 }
@@ -86,4 +87,10 @@ export function toggleMusic(): boolean {
   saveMusicOn(musicOn)
   if (musicOn) startMusic()
   return musicOn
+}
+
+/** Set music intensity (0-1) based on score. 0 = normal, 1 = 2x speed. */
+export function setIntensity(intensity: number): void {
+  const clamped = Math.min(1, Math.max(0, intensity))
+  currentStepMs = Math.round(BASE_STEP_MS * (1 - clamped * 0.4))
 }
