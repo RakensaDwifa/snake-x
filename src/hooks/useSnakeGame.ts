@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type React from 'react'
 import {
-  LEVEL_FOOD_INTERVAL,
-  MAX_LEVEL,
   POWERUP_EVERY_FOOD,
   POWERUP_LIFETIME_TICKS,
   POWERUP_SCORE_BONUS,
@@ -12,7 +10,6 @@ import {
 } from '../core/constants.ts'
 import { GameLoop } from '../core/gameLoop.ts'
 import { initialSnake, spawnFood } from '../core/food.ts'
-import { spawnObstacleWall } from '../core/obstacles.ts'
 import { spawnPowerUp } from '../core/powerUp.ts'
 import { canChangeDirection, stepSnake } from '../core/snakeLogic.ts'
 import { bestOf, loadHighScore, loadStats, saveHighScore, saveStats } from '../lib/storage.ts'
@@ -41,7 +38,6 @@ export interface SnakeGameController {
   highScore: number
   stats: GameStats
   won: boolean
-  level: number
   speedMode: SpeedMode
   muted: boolean
   snakeRef: React.MutableRefObject<Position[]>
@@ -51,9 +47,7 @@ export interface SnakeGameController {
   shakeRef: React.MutableRefObject<number>
   particlesRef: React.MutableRefObject<Particle[]>
   floatsRef: React.MutableRefObject<FloatText[]>
-  obstaclesRef: React.MutableRefObject<Position[]>
   powerUpsRef: React.MutableRefObject<PowerUp[]>
-  levelUpAtRef: React.MutableRefObject<number>
   registerRenderer: (fn: ((interp: number) => void) | null) => void
   changeDirection: (d: Direction) => void
   startGame: () => void
@@ -76,13 +70,11 @@ export function useSnakeGame(): SnakeGameController {
   const [muted, setMuted] = useState(isMuted)
   const [speedMode, setSpeedMode] = useState<SpeedMode>('normal')
   const [won, setWon] = useState(false)
-  const [level, setLevel] = useState(1)
 
   const screenRef = useRef<GameScreen>(screen)
   const snakeRef = useRef<Position[]>(initialSnake())
   const prevSnakeRef = useRef<Position[]>([])
   const foodRef = useRef<Position | null>(null)
-  const obstaclesRef = useRef<Position[]>([])
   const powerUpsRef = useRef<PowerUp[]>([])
   const directionRef = useRef<Direction>('RIGHT')
   const pendingRef = useRef<Direction[]>([])
@@ -94,7 +86,6 @@ export function useSnakeGame(): SnakeGameController {
   const eatAtRef = useRef(0)
   const flashRef = useRef(0)
   const shakeRef = useRef(0)
-  const levelUpAtRef = useRef(0)
   const particlesRef = useRef<Particle[]>([])
   const floatsRef = useRef<FloatText[]>([])
   const ticksRef = useRef(0)
@@ -185,7 +176,6 @@ export function useSnakeGame(): SnakeGameController {
       directionRef.current,
       foodRef.current,
       undefined,
-      obstaclesRef.current,
       currentPowerUp,
     )
 
@@ -232,7 +222,7 @@ export function useSnakeGame(): SnakeGameController {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate?.(12)
       }
-      const nextFood = spawnFood(result.snake, undefined, undefined, obstaclesRef.current)
+      const nextFood = spawnFood(result.snake)
       foodRef.current = nextFood
       setScore(scoreRef.current)
       setLength(result.snake.length)
@@ -246,7 +236,6 @@ export function useSnakeGame(): SnakeGameController {
       if (foodsSincePowerRef.current >= POWERUP_EVERY_FOOD && powerUpsRef.current.length === 0) {
         const powerUp = spawnPowerUp(
           result.snake,
-          obstaclesRef.current,
           foodRef.current,
           undefined,
           'slow',
@@ -256,24 +245,6 @@ export function useSnakeGame(): SnakeGameController {
         if (powerUp) {
           powerUpsRef.current = [powerUp]
           foodsSincePowerRef.current = 0
-        }
-      }
-
-      const nextLevel = Math.floor(scoreRef.current / LEVEL_FOOD_INTERVAL) + 1
-      if (nextLevel > 1 && nextLevel <= MAX_LEVEL) {
-        const wall = spawnObstacleWall(
-          result.snake,
-          obstaclesRef.current,
-          foodRef.current,
-          undefined,
-          nextLevel,
-          Math.random,
-        )
-        if (wall.length > 0) {
-          obstaclesRef.current = [...obstaclesRef.current, ...wall]
-          levelUpAtRef.current = now
-          sfx.level()
-          setLevel(nextLevel)
         }
       }
     }
@@ -294,7 +265,6 @@ export function useSnakeGame(): SnakeGameController {
     snakeRef.current = snake
     prevSnakeRef.current = snake.map((c) => ({ ...c }))
     foodRef.current = spawnFood(snake)
-    obstaclesRef.current = []
     powerUpsRef.current = []
     directionRef.current = 'RIGHT'
     pendingRef.current = []
@@ -306,14 +276,12 @@ export function useSnakeGame(): SnakeGameController {
     wonRef.current = false
     flashRef.current = 0
     shakeRef.current = 0
-    levelUpAtRef.current = 0
     particlesRef.current = []
     floatsRef.current = []
     eatAtRef.current = 0
     setScore(0)
     setLength(snake.length)
     setWon(false)
-    setLevel(1)
     loopRef.current?.setTickMs(tickMsFor(0, speedRef.current))
     loopRef.current?.stop()
     applyScreen('playing')
@@ -400,7 +368,6 @@ export function useSnakeGame(): SnakeGameController {
     highScore,
     stats,
     won,
-    level,
     speedMode,
     muted,
     snakeRef,
@@ -410,9 +377,7 @@ export function useSnakeGame(): SnakeGameController {
     shakeRef,
     particlesRef,
     floatsRef,
-    obstaclesRef,
     powerUpsRef,
-    levelUpAtRef,
     registerRenderer: (fn) => {
       rendererRef.current = fn
     },

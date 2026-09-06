@@ -9,12 +9,8 @@ export function spawnFood(
   snake: Position[],
   gridSize: number = GRID_SIZE,
   random: () => number = Math.random,
-  obstacles: Position[] = [],
 ): Position | null {
   const occupied = new Set(snake.map((cell) => `${cell.x},${cell.y}`))
-  for (const cell of obstacles) {
-    occupied.add(`${cell.x},${cell.y}`)
-  }
   const totalCells = gridSize * gridSize
   if (occupied.size >= totalCells) return null
 

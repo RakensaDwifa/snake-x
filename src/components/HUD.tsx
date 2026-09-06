@@ -1,7 +1,6 @@
 interface HUDProps {
   score: number
   length: number
-  level: number
   highScore: number
   muted: boolean
   onToggleMute: () => void
@@ -12,7 +11,6 @@ interface HUDProps {
 export function HUD({
   score,
   length,
-  level,
   highScore,
   muted,
   onToggleMute,
@@ -29,10 +27,6 @@ export function HUD({
         <div className="rounded-xl border border-surface-800 bg-surface-900/60 px-3 py-1.5">
           <div className="text-[10px] uppercase tracking-wide text-slate-500">Panjang</div>
           <div className="font-display text-lg font-bold text-slate-200">{length}</div>
-        </div>
-        <div className="rounded-xl border border-surface-800 bg-surface-900/60 px-3 py-1.5">
-          <div className="text-[10px] uppercase tracking-wide text-slate-500">Level</div>
-          <div className="font-display text-lg font-bold text-amber-200">{level}</div>
         </div>
         <div className="rounded-xl border border-surface-800 bg-surface-900/60 px-3 py-1.5">
           <div className="text-[10px] uppercase tracking-wide text-slate-500">Best</div>

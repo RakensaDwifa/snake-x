@@ -89,7 +89,6 @@ export default function App() {
 <HUD
               score={game.score}
               length={game.length}
-              level={game.level}
               highScore={game.highScore}
               muted={game.muted}
               onToggleMute={game.toggleMute}
@@ -110,9 +109,7 @@ export default function App() {
               shakeRef={game.shakeRef}
               particlesRef={game.particlesRef}
               floatsRef={game.floatsRef}
-              obstaclesRef={game.obstaclesRef}
               powerUpsRef={game.powerUpsRef}
-              levelUpAtRef={game.levelUpAtRef}
               onReady={(draw) =>
                 game.registerRenderer((interp) => {
                   draw(interp)

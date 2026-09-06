@@ -13,9 +13,7 @@ export interface BoardRendererProps {
   shakeRef: MutableRefObject<number>
   particlesRef: MutableRefObject<Particle[]>
   floatsRef: MutableRefObject<FloatText[]>
-  obstaclesRef: MutableRefObject<Position[]>
   powerUpsRef: MutableRefObject<PowerUp[]>
-  levelUpAtRef: MutableRefObject<number>
   onReady: (draw: (interp: number) => void) => void
 }
 
@@ -33,9 +31,7 @@ export function BoardRenderer({
   shakeRef,
   particlesRef,
   floatsRef,
-  obstaclesRef,
   powerUpsRef,
-  levelUpAtRef,
   onReady,
 }: BoardRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -90,10 +86,6 @@ export function BoardRenderer({
         drawFood(ctx, foodCell, cell, now)
       }
 
-      for (const obstacle of obstaclesRef.current) {
-        drawObstacle(ctx, obstacle, cell)
-      }
-
       for (const powerUp of powerUpsRef.current) {
         drawPowerUp(ctx, powerUp, cell, now)
       }
@@ -114,13 +106,8 @@ export function BoardRenderer({
         drawParticles(ctx, particlesRef.current, cell)
         drawFloats(ctx, floatsRef.current, cell)
       }
-
-      const levelUpAge = now - levelUpAtRef.current
-      if (!reduced && levelUpAge >= 0 && levelUpAge < 700) {
-        drawLevelUpText(ctx, width, height, levelUpAge / 700)
-      }
     },
-    [flashRef, floatsRef, foodRef, levelUpAtRef, obstaclesRef, particlesRef, powerUpsRef, prevSnakeRef, shakeRef, snakeRef],
+    [flashRef, floatsRef, foodRef, particlesRef, powerUpsRef, prevSnakeRef, shakeRef, snakeRef],
   )
 
   useEffect(() => {
@@ -208,19 +195,6 @@ function drawFood(ctx: CanvasRenderingContext2D, food: Position, cell: number, n
   ctx.fill()
 }
 
-function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Position, cell: number) {
-  const pad = cell * 0.14
-  const x = obstacle.x * cell + pad
-  const y = obstacle.y * cell + pad
-  const size = cell - pad * 2
-
-  ctx.fillStyle = 'rgba(71, 85, 105, 0.55)'
-  ctx.fillRect(x, y, size, size)
-  ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)'
-  ctx.lineWidth = 1.5
-  ctx.strokeRect(x + 1, y + 1, size - 2, size - 2)
-}
-
 function drawPowerUp(ctx: CanvasRenderingContext2D, powerUp: PowerUp, cell: number, now: number) {
   const cx = (powerUp.pos.x + 0.5) * cell
   const cy = (powerUp.pos.y + 0.5) * cell
@@ -269,27 +243,6 @@ function drawStar(
   ctx.closePath()
   ctx.fillStyle = '#a78bfa'
   ctx.fill()
-}
-
-function drawLevelUpText(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  progress: number,
-) {
-  const alpha = progress < 0.25 ? progress / 0.25 : Math.max(0, 1 - (progress - 0.25) / 0.75)
-  ctx.globalAlpha = alpha
-  ctx.font = `800 ${Math.round(height * 0.16)}px Sora, Inter, sans-serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillStyle = '#fbbf24'
-  ctx.shadowColor = 'rgba(251, 191, 36, 0.6)'
-  ctx.shadowBlur = 24
-  ctx.fillText('LEVEL UP', width / 2, height * 0.42)
-  ctx.shadowBlur = 0
-  ctx.globalAlpha = 1
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'alphabetic'
 }
 
 function drawParticles(ctx: CanvasRenderingContext2D, particles: Particle[], cell: number) {

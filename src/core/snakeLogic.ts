@@ -30,7 +30,6 @@ export function stepSnake(
   direction: Direction,
   food: Position | null,
   gridSize: number = GRID_SIZE,
-  obstacles: Position[] = [],
   powerUp: PowerUp | null = null,
 ): StepResult {
   const head = snake[0]
@@ -38,10 +37,6 @@ export function stepSnake(
   const next: Position = { x: head.x + dx, y: head.y + dy }
 
   if (isOutOfBounds(next, gridSize)) {
-    return { snake, food, ate: false, dead: true, win: false, powerUpEaten: null }
-  }
-
-  if (contains(obstacles, next)) {
     return { snake, food, ate: false, dead: true, win: false, powerUpEaten: null }
   }
 

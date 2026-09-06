@@ -82,7 +82,7 @@ export function MenuScreen({
         Panah / WASD / geser untuk bergerak · Esc / Spasi / P untuk jeda
       </p>
       <div className="text-center text-xs text-slate-500">
-        Dinding mematikan — jangan menabrak! Tangkap ⭐ bintang untuk waktu melambat.
+        Tangkap ⭐ bintang untuk waktu melambat.
       </div>
     </motion.div>
   )

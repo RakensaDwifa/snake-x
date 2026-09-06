@@ -2,13 +2,11 @@ import { GRID_SIZE } from './constants.ts'
 import type { Position, PowerUp, PowerUpKind } from '../types/game.ts'
 
 /**
- * Pick a random free cell for a power-up, avoiding the snake, obstacles, and
- * the food. Returns null when no free cell exists or randomness keeps missing
- * (rare on a mostly-empty board).
+ * Pick a random free cell for a power-up, avoiding the snake and the food.
+ * Returns null when no free cell exists.
  */
 export function spawnPowerUp(
   snake: Position[],
-  obstacles: Position[],
   food: Position | null,
   gridSize: number = GRID_SIZE,
   kind: PowerUpKind = 'slow',
@@ -16,7 +14,7 @@ export function spawnPowerUp(
   bornTick: number = 0,
 ): PowerUp | null {
   const occupied = new Set<string>()
-  for (const cell of [...snake, ...obstacles, ...(food ? [food] : [])]) {
+  for (const cell of [...snake, ...(food ? [food] : [])]) {
     occupied.add(`${cell.x},${cell.y}`)
   }
 
