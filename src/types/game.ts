@@ -35,6 +35,10 @@ export interface GameStats {
   totalFood: number
   maxLength: number
   wins: number
+  totalScore: number
+  bestCombo: number
+  goldEaten: number
+  playSeconds: number
 }
 
 export interface ScoreEntry {

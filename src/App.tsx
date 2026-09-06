@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { useSnakeGame } from './hooks/useSnakeGame.ts'
 import { useKeyboard } from './hooks/useKeyboard.ts'
@@ -15,6 +15,7 @@ import { GameOverScreen } from './components/screens/GameOverScreen.tsx'
 import { unlockAudio } from './audio/sfx.ts'
 import { startMusic } from './audio/music.ts'
 import type { Direction } from './types/game.ts'
+import { POWERUP_SLOW_DURATION_MS, POWERUP_DOUBLE_DURATION_MS } from './core/constants.ts'
 
 export default function App() {
   const game = useSnakeGame()
@@ -59,8 +60,7 @@ export default function App() {
   })
   useSwipe(getBoard, ensureActive)
 
-  const slowBar = EffectBar(game, 'slow')
-  const doubleBar = EffectBar(game, 'double')
+  const isPaused = game.screen === 'paused'
 
   return (
     <MotionConfig reducedMotion="user">
@@ -84,6 +84,7 @@ export default function App() {
             volume={game.volume}
             musicOn={game.musicOn}
             wrapMode={game.wrapMode}
+            stats={game.stats}
             onSpeed={game.setSpeedMode}
             onStart={handleStart}
             onToggleMute={game.toggleMute}
@@ -109,19 +110,20 @@ export default function App() {
               muted={game.muted}
               combo={game.combo}
               activeEffects={game.activeEffects}
-              slowMs={slowBar.ms}
-              slowUntil={slowBar.until}
-              doubleMs={doubleBar.ms}
-              doubleUntil={doubleBar.until}
+              slowMs={POWERUP_SLOW_DURATION_MS}
+              slowUntil={game.effectUntil.slow}
+              doubleMs={POWERUP_DOUBLE_DURATION_MS}
+              doubleUntil={game.effectUntil.double}
               onToggleMute={game.toggleMute}
               onPause={game.pause}
               showPause={game.screen === 'playing'}
+              paused={isPaused}
             />
 
           <div
             ref={boardRef}
             className="relative aspect-square w-full overflow-hidden rounded-2xl border border-surface-800 shadow-[0_0_40px_rgba(16,185,129,0.15)]"
-            style={{ touchAction: 'none' }}
+            style={{ touchAction: 'none', width: 'min(100%, 28rem, calc(100dvh - 14rem))' }}
           >
             <BoardRenderer
               snakeRef={game.snakeRef}
@@ -183,32 +185,4 @@ export default function App() {
       </div>
     </MotionConfig>
   )
-}
-
-interface EffectBarState {
-  until: number
-  ms: number
-}
-
-function EffectBar(
-  game: ReturnType<typeof useSnakeGame>,
-  key: 'slow' | 'double',
-): EffectBarState {
-  const untilRef = key === 'slow' ? game.slowUntilRef : game.doubleUntilRef
-  const active = key === 'slow' ? game.activeEffects.slow : game.activeEffects.double
-  const [state, setState] = useState<EffectBarState>({ until: 0, ms: 0 })
-  useEffect(() => {
-    if (!active) {
-      setState({ until: 0, ms: 0 })
-      return
-    }
-    const until = untilRef.current
-    if (until <= 0) {
-      setState({ until: 0, ms: 0 })
-      return
-    }
-    const ms = Math.max(0, until - performance.now())
-    setState({ until, ms })
-  }, [active, untilRef])
-  return state
 }

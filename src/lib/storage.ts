@@ -31,7 +31,7 @@ export function bestOf(current: number, candidate: number): number {
   return Math.max(current, candidate)
 }
 
-export const EMPTY_STATS: GameStats = { games: 0, totalFood: 0, maxLength: 0, wins: 0 }
+export const EMPTY_STATS: GameStats = { games: 0, totalFood: 0, maxLength: 0, wins: 0, totalScore: 0, bestCombo: 0, goldEaten: 0, playSeconds: 0 }
 
 export function loadStats(): GameStats {
   try {
@@ -44,6 +44,10 @@ export function loadStats(): GameStats {
       totalFood: num(parsed.totalFood),
       maxLength: num(parsed.maxLength),
       wins: num(parsed.wins),
+      totalScore: num(parsed.totalScore),
+      bestCombo: num(parsed.bestCombo),
+      goldEaten: num(parsed.goldEaten),
+      playSeconds: num(parsed.playSeconds),
     }
   } catch {
     return { ...EMPTY_STATS }
@@ -116,14 +120,20 @@ export function loadScores(): ScoreEntry[] {
     if (raw === null) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
+    const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
     return (parsed as ScoreEntry[])
-      .filter(
-        (e) =>
-          typeof e === 'object' &&
-          e !== null &&
-          typeof (e as ScoreEntry).score === 'number' &&
-          Number.isFinite((e as ScoreEntry).score),
-      )
+      .filter((e) => typeof e === 'object' && e !== null)
+      .map((e) => {
+        const obj = e as unknown as Record<string, unknown>
+        return {
+          score: num(obj.score),
+          length: num(obj.length),
+          won: Boolean(obj.won),
+          at: num(obj.at),
+        }
+      })
+      .filter((e) => e.score > 0 && e.at > 0)
+      .sort((a, b) => b.score - a.score || b.length - a.length || b.at - a.at)
       .slice(0, MAX_SCORES)
   } catch {
     return []

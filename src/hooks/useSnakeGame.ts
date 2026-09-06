@@ -68,14 +68,13 @@ export interface SnakeGameController {
   countdown: CountdownValue
   volume: number
   musicOn: boolean
+  effectUntil: { slow: number; double: number }
   snakeRef: React.MutableRefObject<Position[]>
   prevSnakeRef: React.MutableRefObject<Position[]>
   foodRef: React.MutableRefObject<Position | null>
   bonusFoodRef: React.MutableRefObject<Position | null>
   bonusFoodExpireAtRef: React.MutableRefObject<number>
   shieldFreezeUntilRef: React.MutableRefObject<number>
-  slowUntilRef: React.MutableRefObject<number>
-  doubleUntilRef: React.MutableRefObject<number>
   flashRef: React.MutableRefObject<number>
   shakeRef: React.MutableRefObject<number>
   particlesRef: React.MutableRefObject<Particle[]>
@@ -150,6 +149,12 @@ export function useSnakeGame(): SnakeGameController {
   const rendererRef = useRef<((interp: number) => void) | null>(null)
   const loopRef = useRef<GameLoop | null>(null)
 
+  const [effectUntil, setEffectUntil] = useState({ slow: 0, double: 0 })
+  const foodsEatenRef = useRef(0)
+  const goldEatenRef = useRef(0)
+  const bestComboRef = useRef(0)
+  const playMsRef = useRef(0)
+
   const updateScores = useCallback((list: ScoreEntry[]) => {
     scoresRef.current = list
     setScores(list)
@@ -176,6 +181,10 @@ export function useSnakeGame(): SnakeGameController {
       slow: slowActiveRef.current,
       double: doubleActiveRef.current,
       shield: shieldActiveRef.current,
+    })
+    setEffectUntil({
+      slow: slowActiveRef.current ? slowUntilRef.current : 0,
+      double: doubleActiveRef.current ? doubleUntilRef.current : 0,
     })
   }, [])
 
@@ -253,9 +262,13 @@ export function useSnakeGame(): SnakeGameController {
       setStats((prev) => {
         const next: GameStats = {
           games: prev.games + 1,
-          totalFood: prev.totalFood + finalScore,
+          totalFood: prev.totalFood + foodsEatenRef.current,
           maxLength: Math.max(prev.maxLength, finalLength),
           wins: prev.wins + (wonGame ? 1 : 0),
+          totalScore: prev.totalScore + finalScore,
+          bestCombo: Math.max(prev.bestCombo, bestComboRef.current),
+          goldEaten: prev.goldEaten + goldEatenRef.current,
+          playSeconds: prev.playSeconds + Math.round(playMsRef.current / 1000),
         }
         storage.saveStats(next)
         return next
@@ -268,8 +281,6 @@ export function useSnakeGame(): SnakeGameController {
 
   const tick = useCallback(() => {
     const now = performance.now()
-
-    if (now < shieldFreezeUntilRef.current) return
 
     const slowExpired = slowActiveRef.current && now >= slowUntilRef.current
     if (slowExpired) {
@@ -284,7 +295,10 @@ export function useSnakeGame(): SnakeGameController {
       syncEffects()
     }
 
+    if (now < shieldFreezeUntilRef.current) return
+
     ticksRef.current += 1
+    playMsRef.current += computeTickMs()
     powerUpsRef.current = powerUpsRef.current.filter(
       (p) => ticksRef.current - p.bornTick < POWERUP_LIFETIME_TICKS,
     )
@@ -339,6 +353,8 @@ export function useSnakeGame(): SnakeGameController {
       bonusFoodRef.current = null
       scoreRef.current += BONUS_FOOD_POINTS
       sfx.gold()
+      foodsEatenRef.current += 1
+      goldEatenRef.current += 1
       const head = result.snake[0]
       particlesRef.current.push(
         ...spawnBurst(head.x + 0.5, head.y + 0.5, { colors: GOLDEN_COLORS }),
@@ -395,11 +411,13 @@ export function useSnakeGame(): SnakeGameController {
     if (result.ate) {
       const multiplier = scoreFor(1, comboRef.current)
       comboRef.current = resolveCombo(comboRef.current, now, eatAtRef.current, COMBO_WINDOW_MS)
+      bestComboRef.current = Math.max(bestComboRef.current, comboRef.current)
       const gained = scoreFor(1, comboRef.current)
       setCombo(comboRef.current)
       scoreRef.current += gained
       eatAtRef.current = now
       sfx.eat()
+      foodsEatenRef.current += 1
       const ateAt = foodRef.current ?? result.snake[0]
       particlesRef.current.push(
         ...spawnBurst(ateAt.x + 0.5, ateAt.y + 0.5, { colors: EAT_COLORS }),
@@ -494,6 +512,10 @@ export function useSnakeGame(): SnakeGameController {
     particlesRef.current = []
     floatsRef.current = []
     eatAtRef.current = 0
+    foodsEatenRef.current = 0
+    goldEatenRef.current = 0
+    bestComboRef.current = 0
+    playMsRef.current = 0
     setScore(0)
     setLength(snake.length)
     setWon(false)
@@ -621,14 +643,13 @@ export function useSnakeGame(): SnakeGameController {
     countdown,
     volume,
     musicOn,
+    effectUntil,
     snakeRef,
     prevSnakeRef,
     foodRef,
     bonusFoodRef,
     bonusFoodExpireAtRef,
     shieldFreezeUntilRef,
-    slowUntilRef,
-    doubleUntilRef,
     flashRef,
     shakeRef,
     particlesRef,

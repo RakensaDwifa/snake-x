@@ -15,6 +15,7 @@ interface HUDProps {
   onToggleMute: () => void
   onPause: () => void
   showPause: boolean
+  paused: boolean
 }
 
 interface EffectChipProps {
@@ -25,9 +26,10 @@ interface EffectChipProps {
   colorBar: string
   title: string
   children: ReactNode
+  paused: boolean
 }
 
-function EffectChip({ active, until, ms, color, colorBar, title, children }: EffectChipProps) {
+function EffectChip({ active, until, ms, color, colorBar, title, children, paused }: EffectChipProps) {
   const showBar = active && ms > 0
   return (
     <div
@@ -45,7 +47,7 @@ function EffectChip({ active, until, ms, color, colorBar, title, children }: Eff
           <div
             key={until}
             className={`effect-bar h-full rounded-full ${colorBar}`}
-            style={{ animationDuration: `${ms}ms` }}
+            style={{ animationDuration: `${ms}ms`, animationPlayState: paused ? 'paused' : 'running' }}
           />
         </div>
       )}
@@ -73,6 +75,7 @@ export function HUD({
   onToggleMute,
   onPause,
   showPause,
+  paused,
 }: HUDProps) {
   return (
     <div className="mb-3 flex w-full max-w-md flex-col gap-2">
@@ -130,6 +133,7 @@ export function HUD({
           color="bg-sky-400"
           colorBar="bg-sky-400"
           title="Tameng siap menahan satu hantaman"
+          paused={paused}
         >
           🛡️
         </EffectChip>
@@ -140,6 +144,7 @@ export function HUD({
           color="bg-sky-400"
           colorBar="bg-sky-400"
           title="Waktu melambat"
+          paused={paused}
         >
           🐢
         </EffectChip>
@@ -150,6 +155,7 @@ export function HUD({
           color="bg-fuchsia-400"
           colorBar="bg-fuchsia-400"
           title="Skor 2×"
+          paused={paused}
         >
           ×2
         </EffectChip>
