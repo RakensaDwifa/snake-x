@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { useSnakeGame } from './hooks/useSnakeGame.ts'
 import { useKeyboard } from './hooks/useKeyboard.ts'
@@ -7,11 +7,13 @@ import { useIsMobile } from './hooks/useIsMobile.ts'
 import { BoardRenderer } from './render/BoardRenderer.tsx'
 import { HUD } from './components/HUD.tsx'
 import { Controls } from './components/Controls.tsx'
+import { CountdownOverlay } from './components/CountdownOverlay.tsx'
 import { SplashScreen } from './components/screens/SplashScreen.tsx'
 import { MenuScreen } from './components/screens/MenuScreen.tsx'
 import { PauseScreen } from './components/screens/PauseScreen.tsx'
 import { GameOverScreen } from './components/screens/GameOverScreen.tsx'
 import { unlockAudio } from './audio/sfx.ts'
+import { startMusic } from './audio/music.ts'
 import type { Direction } from './types/game.ts'
 
 export default function App() {
@@ -25,25 +27,30 @@ export default function App() {
 
   const getBoard = useCallback(() => boardRef.current, [])
 
-  const handleStart = useCallback(() => {
+  const unlock = useCallback(() => {
     unlockAudio()
+    startMusic()
+  }, [])
+
+  const handleStart = useCallback(() => {
+    unlock()
     game.startGame()
-  }, [game])
+  }, [game, unlock])
 
   const ensureActive = useCallback(
     (d: Direction) => {
-      unlockAudio()
+      unlock()
       if (screenRef.current === 'splash') {
         game.toMenu()
         return
       }
       game.changeDirection(d)
     },
-    [game],
+    [game, unlock],
   )
 
   useKeyboard(ensureActive, () => {
-    unlockAudio()
+    unlock()
     if (screenRef.current === 'splash') {
       game.toMenu()
     } else {
@@ -51,6 +58,9 @@ export default function App() {
     }
   })
   useSwipe(getBoard, ensureActive)
+
+  const slowBar = EffectBar(game, 'slow')
+  const doubleBar = EffectBar(game, 'double')
 
   return (
     <MotionConfig reducedMotion="user">
@@ -60,7 +70,7 @@ export default function App() {
           <SplashScreen
             key="splash"
             onContinue={() => {
-              unlockAudio()
+              unlock()
               game.toMenu()
             }}
           />
@@ -71,9 +81,15 @@ export default function App() {
             highScore={game.highScore}
             speedMode={game.speedMode}
             muted={game.muted}
+            volume={game.volume}
+            musicOn={game.musicOn}
+            wrapMode={game.wrapMode}
             onSpeed={game.setSpeedMode}
             onStart={handleStart}
             onToggleMute={game.toggleMute}
+            onToggleMusic={game.toggleMusic}
+            onToggleWrap={game.toggleWrap}
+            onVolume={game.setVolume}
           />
         )}
       </AnimatePresence>
@@ -91,6 +107,12 @@ export default function App() {
               length={game.length}
               highScore={game.highScore}
               muted={game.muted}
+              combo={game.combo}
+              activeEffects={game.activeEffects}
+              slowMs={slowBar.ms}
+              slowUntil={slowBar.until}
+              doubleMs={doubleBar.ms}
+              doubleUntil={doubleBar.until}
               onToggleMute={game.toggleMute}
               onPause={game.pause}
               showPause={game.screen === 'playing'}
@@ -105,6 +127,9 @@ export default function App() {
               snakeRef={game.snakeRef}
               prevSnakeRef={game.prevSnakeRef}
               foodRef={game.foodRef}
+              bonusFoodRef={game.bonusFoodRef}
+              bonusFoodExpireAtRef={game.bonusFoodExpireAtRef}
+              shieldFreezeUntilRef={game.shieldFreezeUntilRef}
               flashRef={game.flashRef}
               shakeRef={game.shakeRef}
               particlesRef={game.particlesRef}
@@ -116,6 +141,8 @@ export default function App() {
                 })
               }
             />
+
+            <CountdownOverlay value={game.countdown} />
 
             <AnimatePresence>
               {game.screen === 'paused' && (
@@ -135,6 +162,7 @@ export default function App() {
                   stats={game.stats}
                   newBest={game.score === game.highScore && game.score > 0}
                   won={game.won}
+                  scores={game.scores}
                   onRestart={handleStart}
                   onMenu={game.toMenu}
                 />
@@ -155,4 +183,32 @@ export default function App() {
       </div>
     </MotionConfig>
   )
+}
+
+interface EffectBarState {
+  until: number
+  ms: number
+}
+
+function EffectBar(
+  game: ReturnType<typeof useSnakeGame>,
+  key: 'slow' | 'double',
+): EffectBarState {
+  const untilRef = key === 'slow' ? game.slowUntilRef : game.doubleUntilRef
+  const active = key === 'slow' ? game.activeEffects.slow : game.activeEffects.double
+  const [state, setState] = useState<EffectBarState>({ until: 0, ms: 0 })
+  useEffect(() => {
+    if (!active) {
+      setState({ until: 0, ms: 0 })
+      return
+    }
+    const until = untilRef.current
+    if (until <= 0) {
+      setState({ until: 0, ms: 0 })
+      return
+    }
+    const ms = Math.max(0, until - performance.now())
+    setState({ until, ms })
+  }, [active, untilRef])
+  return state
 }

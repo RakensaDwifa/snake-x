@@ -1,5 +1,12 @@
 import { DIRECTION_DELTAS, GRID_SIZE, OPPOSITE_DIRECTION } from './constants.ts'
-import type { Direction, Position, PowerUp, PowerUpKind, StepResult } from '../types/game.ts'
+import type {
+  Direction,
+  Position,
+  PowerUp,
+  PowerUpKind,
+  StepOptions,
+  StepResult,
+} from '../types/game.ts'
 
 export function isOpposite(a: Direction, b: Direction): boolean {
   return OPPOSITE_DIRECTION[a] === b
@@ -17,6 +24,14 @@ export function positionsEqual(a: Position, b: Position): boolean {
   return a.x === b.x && a.y === b.y
 }
 
+/** Wrap a position into the grid (toroidal board). */
+export function wrapPosition(pos: Position, gridSize: number = GRID_SIZE): Position {
+  return {
+    x: ((pos.x % gridSize) + gridSize) % gridSize,
+    y: ((pos.y % gridSize) + gridSize) % gridSize,
+  }
+}
+
 function contains(cells: Position[], pos: Position): boolean {
   return cells.some((cell) => positionsEqual(cell, pos))
 }
@@ -31,13 +46,17 @@ export function stepSnake(
   food: Position | null,
   gridSize: number = GRID_SIZE,
   powerUp: PowerUp | null = null,
+  options: StepOptions = {},
 ): StepResult {
   const head = snake[0]
   const { dx, dy } = DIRECTION_DELTAS[direction]
-  const next: Position = { x: head.x + dx, y: head.y + dy }
+  let next: Position = { x: head.x + dx, y: head.y + dy }
 
   if (isOutOfBounds(next, gridSize)) {
-    return { snake, food, ate: false, dead: true, win: false, powerUpEaten: null }
+    if (!options.wrap) {
+      return { snake, food, ate: false, dead: true, win: false, powerUpEaten: null }
+    }
+    next = wrapPosition(next, gridSize)
   }
 
   const ate = food !== null && positionsEqual(next, food)

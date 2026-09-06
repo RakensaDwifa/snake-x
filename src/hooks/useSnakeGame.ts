@@ -1,35 +1,56 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type React from 'react'
 import {
+  BONUS_FOOD_CHANCE,
+  BONUS_FOOD_LIFETIME_MS,
+  BONUS_FOOD_POINTS,
+  COMBO_WINDOW_MS,
+  COUNTDOWN_MS,
+  COUNTDOWN_START,
+  POWERUP_DOUBLE_DURATION_MS,
   POWERUP_EVERY_FOOD,
   POWERUP_LIFETIME_TICKS,
   POWERUP_SCORE_BONUS,
   POWERUP_SLOW_DURATION_MS,
   POWERUP_SLOW_FACTOR,
+  SHIELD_FREEZE_MS,
   tickMsFor,
 } from '../core/constants.ts'
+import { resolveCombo, scoreFor } from '../core/combo.ts'
+import type { CountdownValue } from '../core/countdown.ts'
 import { GameLoop } from '../core/gameLoop.ts'
-import { initialSnake, spawnFood } from '../core/food.ts'
-import { spawnPowerUp } from '../core/powerUp.ts'
-import { canChangeDirection, stepSnake } from '../core/snakeLogic.ts'
-import { bestOf, loadHighScore, loadStats, saveHighScore, saveStats } from '../lib/storage.ts'
-import { isMuted, setMuted as persistMuted, sfx } from '../audio/sfx.ts'
+import { initialSnake, spawnBonusFood, spawnFood } from '../core/food.ts'
+import { randomPowerUpKind, spawnPowerUp } from '../core/powerUp.ts'
+import { canChangeDirection, positionsEqual, stepSnake } from '../core/snakeLogic.ts'
+import { getVolume, isMuted, setMuted as persistMuted, setVolume as persistVolume, sfx } from '../audio/sfx.ts'
+import * as music from '../audio/music.ts'
 import {
   DEATH_COLORS,
   EAT_COLORS,
+  GOLDEN_COLORS,
   POWERUP_COLORS,
+  SHIELD_COLORS,
   spawnBurst,
   spawnFloat,
 } from '../render/particles.ts'
 import type { FloatText, Particle } from '../render/particles.ts'
+import * as storage from '../lib/storage.ts'
 import type {
   Direction,
   GameScreen,
   GameStats,
   Position,
   PowerUp,
+  PowerUpKind,
+  ScoreEntry,
   SpeedMode,
 } from '../types/game.ts'
+
+export interface ActiveEffects {
+  slow: boolean
+  double: boolean
+  shield: boolean
+}
 
 export interface SnakeGameController {
   screen: GameScreen
@@ -40,9 +61,21 @@ export interface SnakeGameController {
   won: boolean
   speedMode: SpeedMode
   muted: boolean
+  combo: number
+  activeEffects: ActiveEffects
+  wrapMode: boolean
+  scores: ScoreEntry[]
+  countdown: CountdownValue
+  volume: number
+  musicOn: boolean
   snakeRef: React.MutableRefObject<Position[]>
   prevSnakeRef: React.MutableRefObject<Position[]>
   foodRef: React.MutableRefObject<Position | null>
+  bonusFoodRef: React.MutableRefObject<Position | null>
+  bonusFoodExpireAtRef: React.MutableRefObject<number>
+  shieldFreezeUntilRef: React.MutableRefObject<number>
+  slowUntilRef: React.MutableRefObject<number>
+  doubleUntilRef: React.MutableRefObject<number>
   flashRef: React.MutableRefObject<number>
   shakeRef: React.MutableRefObject<number>
   particlesRef: React.MutableRefObject<Particle[]>
@@ -57,24 +90,39 @@ export interface SnakeGameController {
   toMenu: () => void
   setSpeedMode: (m: SpeedMode) => void
   toggleMute: () => void
+  toggleWrap: () => void
+  toggleMusic: () => void
+  setVolume: (v: number) => void
 }
 
 const PENDING_LIMIT = 3
+const NO_EFFECTS: ActiveEffects = { slow: false, double: false, shield: false }
 
 export function useSnakeGame(): SnakeGameController {
   const [screen, setScreen] = useState<GameScreen>('splash')
   const [score, setScore] = useState(0)
   const [length, setLength] = useState(4)
-  const [highScore, setHighScore] = useState(loadHighScore)
-  const [stats, setStats] = useState<GameStats>(loadStats)
+  const [highScore, setHighScore] = useState(storage.loadHighScore)
+  const [stats, setStats] = useState<GameStats>(storage.loadStats)
   const [muted, setMuted] = useState(isMuted)
   const [speedMode, setSpeedMode] = useState<SpeedMode>('normal')
   const [won, setWon] = useState(false)
+  const [combo, setCombo] = useState(0)
+  const [activeEffects, setActiveEffects] = useState<ActiveEffects>(NO_EFFECTS)
+  const [wrapMode, setWrapMode] = useState(storage.loadWrapMode)
+  const [scores, setScores] = useState<ScoreEntry[]>(storage.loadScores)
+  const [countdown, setCountdown] = useState<CountdownValue>(null)
+  const [volume, setVolumeState] = useState(getVolume)
+  const [musicOn, setMusicOn] = useState(music.isMusicOn)
+
+  const scoresRef = useRef(scores)
 
   const screenRef = useRef<GameScreen>(screen)
   const snakeRef = useRef<Position[]>(initialSnake())
   const prevSnakeRef = useRef<Position[]>([])
   const foodRef = useRef<Position | null>(null)
+  const bonusFoodRef = useRef<Position | null>(null)
+  const bonusFoodExpireAtRef = useRef(0)
   const powerUpsRef = useRef<PowerUp[]>([])
   const directionRef = useRef<Direction>('RIGHT')
   const pendingRef = useRef<Direction[]>([])
@@ -82,7 +130,9 @@ export function useSnakeGame(): SnakeGameController {
   const speedRef = useRef<SpeedMode>('normal')
   const highScoreRef = useRef(highScore)
   const mutedRef = useRef(muted)
+  const wrapRef = useRef(wrapMode)
   const wonRef = useRef(false)
+  const comboRef = useRef(0)
   const eatAtRef = useRef(0)
   const flashRef = useRef(0)
   const shakeRef = useRef(0)
@@ -92,8 +142,18 @@ export function useSnakeGame(): SnakeGameController {
   const foodsSincePowerRef = useRef(0)
   const slowUntilRef = useRef(0)
   const slowActiveRef = useRef(false)
+  const doubleUntilRef = useRef(0)
+  const doubleActiveRef = useRef(false)
+  const shieldActiveRef = useRef(false)
+  const shieldFreezeUntilRef = useRef(0)
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const rendererRef = useRef<((interp: number) => void) | null>(null)
   const loopRef = useRef<GameLoop | null>(null)
+
+  const updateScores = useCallback((list: ScoreEntry[]) => {
+    scoresRef.current = list
+    setScores(list)
+  }, [])
 
   const applyScreen = useCallback((next: GameScreen) => {
     screenRef.current = next
@@ -104,22 +164,83 @@ export function useSnakeGame(): SnakeGameController {
     rendererRef.current?.(interp)
   }, [])
 
+  const computeTickMs = useCallback(() => {
+    let base = tickMsFor(scoreRef.current, speedRef.current)
+    if (slowActiveRef.current) base *= POWERUP_SLOW_FACTOR
+    if (doubleActiveRef.current) base /= 2
+    return base
+  }, [])
+
+  const syncEffects = useCallback(() => {
+    setActiveEffects({
+      slow: slowActiveRef.current,
+      double: doubleActiveRef.current,
+      shield: shieldActiveRef.current,
+    })
+  }, [])
+
+  const clearCountdown = useCallback(() => {
+    if (countdownTimerRef.current !== null) {
+      clearInterval(countdownTimerRef.current)
+      countdownTimerRef.current = null
+    }
+    setCountdown(null)
+  }, [])
+
+  /** Runs the 3-2-1-GO countdown, then calls `after` (loop start). */
+  const runCountdown = useCallback(
+    (after: () => void) => {
+      clearCountdown()
+      setCountdown(COUNTDOWN_START)
+      sfx.countdown()
+      let remaining = COUNTDOWN_START
+      const id = setInterval(() => {
+        if (remaining === 1) {
+          setCountdown(0)
+          sfx.go()
+          remaining = Infinity
+        } else if (remaining === Infinity) {
+          clearInterval(id)
+          if (countdownTimerRef.current === id) countdownTimerRef.current = null
+          setCountdown(null)
+          after()
+        } else {
+          remaining -= 1
+          setCountdown(remaining as CountdownValue)
+          sfx.countdown()
+        }
+      }, COUNTDOWN_MS)
+      countdownTimerRef.current = id
+    },
+    [clearCountdown],
+  )
+
   const endGame = useCallback(
     (wonGame: boolean, finalScore: number, finalLength: number) => {
       loopRef.current?.stop()
+      clearCountdown()
+      music.stopMusic()
       wonRef.current = wonGame
       setWon(wonGame)
       setScore(finalScore)
       setLength(finalLength)
       if (finalScore > highScoreRef.current) {
-        const newBest = bestOf(highScoreRef.current, finalScore)
+        const newBest = Math.max(highScoreRef.current, finalScore)
         highScoreRef.current = newBest
         setHighScore(newBest)
-        saveHighScore(newBest)
+        storage.saveHighScore(newBest)
         sfx.highScore()
       } else {
         sfx.death()
       }
+      const finalScores = storage.addScore(scoresRef.current, {
+        score: finalScore,
+        length: finalLength,
+        won: wonGame,
+        at: Date.now(),
+      })
+      storage.saveScores(finalScores)
+      updateScores(finalScores)
       if (!wonGame) {
         flashRef.current = performance.now()
         shakeRef.current = performance.now()
@@ -133,25 +254,34 @@ export function useSnakeGame(): SnakeGameController {
         const next: GameStats = {
           games: prev.games + 1,
           totalFood: prev.totalFood + finalScore,
-          maxLength: bestOf(prev.maxLength, finalLength),
+          maxLength: Math.max(prev.maxLength, finalLength),
           wins: prev.wins + (wonGame ? 1 : 0),
         }
-        saveStats(next)
+        storage.saveStats(next)
         return next
       })
       applyScreen('gameover')
       redraw()
     },
-    [applyScreen, redraw],
+    [applyScreen, clearCountdown, redraw, updateScores],
   )
 
   const tick = useCallback(() => {
     const now = performance.now()
 
-    const slowProbablyActive = slowActiveRef.current && now >= slowUntilRef.current
-    if (slowProbablyActive) {
+    if (now < shieldFreezeUntilRef.current) return
+
+    const slowExpired = slowActiveRef.current && now >= slowUntilRef.current
+    if (slowExpired) {
       slowActiveRef.current = false
-      loopRef.current?.setTickMs(tickMsFor(scoreRef.current, speedRef.current))
+      loopRef.current?.setTickMs(computeTickMs())
+      syncEffects()
+    }
+    const doubleExpired = doubleActiveRef.current && now >= doubleUntilRef.current
+    if (doubleExpired) {
+      doubleActiveRef.current = false
+      loopRef.current?.setTickMs(computeTickMs())
+      syncEffects()
     }
 
     ticksRef.current += 1
@@ -177,15 +307,52 @@ export function useSnakeGame(): SnakeGameController {
       foodRef.current,
       undefined,
       currentPowerUp,
+      wrapRef.current ? { wrap: true } : undefined,
     )
 
     if (result.dead) {
+      if (shieldActiveRef.current) {
+        shieldActiveRef.current = false
+        shieldFreezeUntilRef.current = now + SHIELD_FREEZE_MS
+        syncEffects()
+        flashRef.current = now
+        shakeRef.current = now
+        const head = snakeRef.current[0]
+        particlesRef.current.push(
+          ...spawnBurst(head.x + 0.5, head.y + 0.5, { colors: SHIELD_COLORS }),
+        )
+        floatsRef.current.push(spawnFloat(head.x + 0.5, head.y + 0.5, '💥 Tameng!', 900, '#38bdf8'))
+        sfx.shieldBreak()
+        return
+      }
       endGame(false, scoreRef.current, snakeRef.current.length)
       return
     }
 
     prevSnakeRef.current = snakeRef.current
     snakeRef.current = result.snake
+
+    if (
+      bonusFoodRef.current &&
+      positionsEqual(result.snake[0], bonusFoodRef.current)
+    ) {
+      bonusFoodRef.current = null
+      scoreRef.current += BONUS_FOOD_POINTS
+      sfx.gold()
+      const head = result.snake[0]
+      particlesRef.current.push(
+        ...spawnBurst(head.x + 0.5, head.y + 0.5, { colors: GOLDEN_COLORS }),
+      )
+      floatsRef.current.push(
+        spawnFloat(head.x + 0.5, head.y + 0.5, `+${BONUS_FOOD_POINTS} ✨`, 900, '#fbbf24'),
+      )
+      shakeRef.current = now
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate?.(15)
+      }
+      setScore(scoreRef.current)
+      redraw()
+    }
 
     if (result.powerUpEaten && currentPowerUp) {
       powerUpsRef.current = []
@@ -198,26 +365,52 @@ export function useSnakeGame(): SnakeGameController {
           colors: POWERUP_COLORS,
         }),
       )
+      const kind: PowerUpKind = currentPowerUp.kind
+      const hint = kind === 'shield' ? ' 🛡️' : kind === 'double' ? ' ×2' : ' 🐢'
       floatsRef.current.push(
-        spawnFloat(currentPowerUp.pos.x + 0.5, currentPowerUp.pos.y + 0.5, `+${gained}`),
+        spawnFloat(
+          currentPowerUp.pos.x + 0.5,
+          currentPowerUp.pos.y + 0.5,
+          `+${gained}${hint}`,
+          900,
+          '#c084fc',
+        ),
       )
-      slowUntilRef.current = now + POWERUP_SLOW_DURATION_MS
-      slowActiveRef.current = true
-      loopRef.current?.setTickMs(tickMsFor(scoreRef.current, speedRef.current) * POWERUP_SLOW_FACTOR)
+      if (kind === 'slow') {
+        slowUntilRef.current = now + POWERUP_SLOW_DURATION_MS
+        slowActiveRef.current = true
+      } else if (kind === 'double') {
+        doubleUntilRef.current = now + POWERUP_DOUBLE_DURATION_MS
+        doubleActiveRef.current = true
+      } else {
+        shieldActiveRef.current = true
+      }
+      loopRef.current?.setTickMs(computeTickMs())
+      syncEffects()
       setScore(scoreRef.current)
       setLength(result.snake.length)
       redraw()
     }
 
     if (result.ate) {
-      scoreRef.current += 1
+      const multiplier = scoreFor(1, comboRef.current)
+      comboRef.current = resolveCombo(comboRef.current, now, eatAtRef.current, COMBO_WINDOW_MS)
+      const gained = scoreFor(1, comboRef.current)
+      setCombo(comboRef.current)
+      scoreRef.current += gained
       eatAtRef.current = now
       sfx.eat()
       const ateAt = foodRef.current ?? result.snake[0]
       particlesRef.current.push(
         ...spawnBurst(ateAt.x + 0.5, ateAt.y + 0.5, { colors: EAT_COLORS }),
       )
-      floatsRef.current.push(spawnFloat(ateAt.x + 0.5, ateAt.y + 0.5, '+1'))
+      floatsRef.current.push(
+        spawnFloat(
+          ateAt.x + 0.5,
+          ateAt.y + 0.5,
+          multiplier > 1 ? `+${gained} 🔥` : '+1',
+        ),
+      )
       shakeRef.current = now
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate?.(12)
@@ -226,7 +419,7 @@ export function useSnakeGame(): SnakeGameController {
       foodRef.current = nextFood
       setScore(scoreRef.current)
       setLength(result.snake.length)
-      loopRef.current?.setTickMs(tickMsFor(scoreRef.current, speedRef.current))
+      loopRef.current?.setTickMs(computeTickMs())
       if (nextFood === null) {
         endGame(true, scoreRef.current, result.snake.length)
         return
@@ -238,7 +431,7 @@ export function useSnakeGame(): SnakeGameController {
           result.snake,
           foodRef.current,
           undefined,
-          'slow',
+          randomPowerUpKind(),
           Math.random,
           ticksRef.current,
         )
@@ -247,8 +440,23 @@ export function useSnakeGame(): SnakeGameController {
           foodsSincePowerRef.current = 0
         }
       }
+
+      if (
+        !bonusFoodRef.current &&
+        Math.random() < BONUS_FOOD_CHANCE
+      ) {
+        const bonus = spawnBonusFood(result.snake, foodRef.current)
+        if (bonus) {
+          bonusFoodRef.current = bonus
+          bonusFoodExpireAtRef.current = performance.now() + BONUS_FOOD_LIFETIME_MS
+        }
+      }
     }
-  }, [endGame, redraw])
+
+    if (bonusFoodRef.current && now >= bonusFoodExpireAtRef.current) {
+      bonusFoodRef.current = null
+    }
+  }, [computeTickMs, endGame, redraw, syncEffects])
 
   const getLoop = useCallback(() => {
     if (!loopRef.current) {
@@ -266,6 +474,8 @@ export function useSnakeGame(): SnakeGameController {
     prevSnakeRef.current = snake.map((c) => ({ ...c }))
     foodRef.current = spawnFood(snake)
     powerUpsRef.current = []
+    bonusFoodRef.current = null
+    bonusFoodExpireAtRef.current = 0
     directionRef.current = 'RIGHT'
     pendingRef.current = []
     scoreRef.current = 0
@@ -273,6 +483,11 @@ export function useSnakeGame(): SnakeGameController {
     foodsSincePowerRef.current = 0
     slowUntilRef.current = 0
     slowActiveRef.current = false
+    doubleUntilRef.current = 0
+    doubleActiveRef.current = false
+    shieldActiveRef.current = false
+    shieldFreezeUntilRef.current = 0
+    comboRef.current = 0
     wonRef.current = false
     flashRef.current = 0
     shakeRef.current = 0
@@ -282,34 +497,44 @@ export function useSnakeGame(): SnakeGameController {
     setScore(0)
     setLength(snake.length)
     setWon(false)
+    setCombo(0)
+    syncEffects()
     loopRef.current?.setTickMs(tickMsFor(0, speedRef.current))
     loopRef.current?.stop()
     applyScreen('playing')
-    sfx.start()
-    loopRef.current?.start()
-  }, [applyScreen, getLoop])
+    music.startMusic()
+    runCountdown(() => {
+      loopRef.current?.start()
+    })
+  }, [applyScreen, getLoop, runCountdown, syncEffects])
 
   const pause = useCallback(() => {
     if (screenRef.current !== 'playing') return
     loopRef.current?.stop()
+    clearCountdown()
     sfx.pause()
     applyScreen('paused')
     redraw()
-  }, [applyScreen, redraw])
+  }, [applyScreen, clearCountdown, redraw])
 
   const resume = useCallback(() => {
     if (screenRef.current !== 'paused') return
-    sfx.resume()
-    if (
-      slowActiveRef.current &&
-      performance.now() >= slowUntilRef.current
-    ) {
+    const now = performance.now()
+    if (slowActiveRef.current && now >= slowUntilRef.current) {
       slowActiveRef.current = false
-      loopRef.current?.setTickMs(tickMsFor(scoreRef.current, speedRef.current))
+      syncEffects()
     }
+    if (doubleActiveRef.current && now >= doubleUntilRef.current) {
+      doubleActiveRef.current = false
+      syncEffects()
+    }
+    loopRef.current?.setTickMs(computeTickMs())
     applyScreen('playing')
-    loopRef.current?.start()
-  }, [applyScreen])
+    music.startMusic()
+    runCountdown(() => {
+      loopRef.current?.start()
+    })
+  }, [applyScreen, computeTickMs, runCountdown, syncEffects])
 
   const togglePause = useCallback(() => {
     if (screenRef.current === 'playing') {
@@ -321,8 +546,10 @@ export function useSnakeGame(): SnakeGameController {
 
   const toMenu = useCallback(() => {
     loopRef.current?.stop()
+    clearCountdown()
     applyScreen('menu')
-  }, [applyScreen])
+    music.startMusic()
+  }, [applyScreen, clearCountdown])
 
   const changeDirection = useCallback((next: Direction) => {
     if (screenRef.current !== 'playing') return
@@ -348,6 +575,23 @@ export function useSnakeGame(): SnakeGameController {
     persistMuted(next)
   }, [])
 
+  const toggleWrap = useCallback(() => {
+    const next = !wrapRef.current
+    wrapRef.current = next
+    setWrapMode(next)
+    storage.saveWrapMode(next)
+  }, [])
+
+  const toggleMusic = useCallback(() => {
+    const next = music.toggleMusic()
+    setMusicOn(next)
+  }, [])
+
+  const changeVolume = useCallback((value: number) => {
+    persistVolume(value)
+    setVolumeState(value)
+  }, [])
+
   // Auto-pause when the tab/window loses focus.
   useEffect(() => {
     const onHide = () => {
@@ -370,9 +614,21 @@ export function useSnakeGame(): SnakeGameController {
     won,
     speedMode,
     muted,
+    combo,
+    activeEffects,
+    wrapMode,
+    scores,
+    countdown,
+    volume,
+    musicOn,
     snakeRef,
     prevSnakeRef,
     foodRef,
+    bonusFoodRef,
+    bonusFoodExpireAtRef,
+    shieldFreezeUntilRef,
+    slowUntilRef,
+    doubleUntilRef,
     flashRef,
     shakeRef,
     particlesRef,
@@ -389,5 +645,8 @@ export function useSnakeGame(): SnakeGameController {
     toMenu,
     setSpeedMode: changeSpeedMode,
     toggleMute,
+    toggleWrap,
+    toggleMusic,
+    setVolume: changeVolume,
   }
 }

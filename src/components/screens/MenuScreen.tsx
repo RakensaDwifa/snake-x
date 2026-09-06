@@ -6,9 +6,15 @@ interface MenuScreenProps {
   highScore: number
   speedMode: SpeedMode
   muted: boolean
+  volume: number
+  musicOn: boolean
+  wrapMode: boolean
   onSpeed: (m: SpeedMode) => void
   onStart: () => void
   onToggleMute: () => void
+  onToggleMusic: () => void
+  onToggleWrap: () => void
+  onVolume: (v: number) => void
 }
 
 const SPEED_ORDER: SpeedMode[] = ['slow', 'normal', 'fast']
@@ -17,9 +23,15 @@ export function MenuScreen({
   highScore,
   speedMode,
   muted,
+  volume,
+  musicOn,
+  wrapMode,
   onSpeed,
   onStart,
   onToggleMute,
+  onToggleMusic,
+  onToggleWrap,
+  onVolume,
 }: MenuScreenProps) {
   return (
     <motion.div
@@ -39,28 +51,30 @@ export function MenuScreen({
         )}
       </div>
 
-      <div className="w-full rounded-2xl border border-surface-800 bg-surface-900/70 p-5">
-        <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-          Kecepatan
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {SPEED_ORDER.map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => onSpeed(mode)}
-              className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-                speedMode === mode
-                  ? 'border-snake-400 bg-snake-500/20 text-snake-300'
-                  : 'border-surface-800 bg-surface-950/50 text-slate-400 hover:border-slate-600'
-              }`}
-            >
-              {SPEED_NAME[mode]}
-            </button>
-          ))}
+      <div className="w-full space-y-4 rounded-2xl border border-surface-800 bg-surface-900/70 p-5">
+        <div>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Kecepatan
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {SPEED_ORDER.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => onSpeed(mode)}
+                className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                  speedMode === mode
+                    ? 'border-snake-400 bg-snake-500/20 text-snake-300'
+                    : 'border-surface-800 bg-surface-950/50 text-slate-400 hover:border-slate-600'
+                }`}
+              >
+                {SPEED_NAME[mode]}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-surface-800 bg-surface-950/50 p-3 text-xs text-slate-400">
+        <div className="flex items-center justify-between rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 text-xs text-slate-400">
           <span>
             Grid {GRID_SIZE}×{GRID_SIZE}
           </span>
@@ -68,6 +82,62 @@ export function MenuScreen({
             {muted ? '🔇 suara mati' : '🔊 suara nyala'}
           </span>
         </div>
+
+        <label className="flex cursor-pointer items-center justify-between rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 text-xs text-slate-400">
+          <span>🎵 Musik latar</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={musicOn}
+            onClick={onToggleMusic}
+            className={`relative h-6 w-11 rounded-full transition ${
+              musicOn ? 'bg-snake-500' : 'bg-surface-800'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
+                musicOn ? 'left-[22px]' : 'left-0.5'
+              }`}
+            />
+          </button>
+        </label>
+
+        {musicOn && (
+          <div className="rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 text-xs text-slate-400">
+            <div className="mb-1.5 flex justify-between">
+              <span>🔊 Volume</span>
+              <span className="font-semibold text-slate-300">{Math.round(volume * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(volume * 100)}
+              onChange={(e) => onVolume(Number(e.target.value) / 100)}
+              aria-label="Volume"
+              className="w-full accent-emerald-500"
+            />
+          </div>
+        )}
+
+        <label className="flex cursor-pointer items-center justify-between rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 text-xs text-slate-400">
+          <span>🔄 Mode tembus dinding (wrap)</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={wrapMode}
+            onClick={onToggleWrap}
+            className={`relative h-6 w-11 rounded-full transition ${
+              wrapMode ? 'bg-snake-500' : 'bg-surface-800'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
+                wrapMode ? 'left-[22px]' : 'left-0.5'
+              }`}
+            />
+          </button>
+        </label>
       </div>
 
       <button
@@ -82,7 +152,9 @@ export function MenuScreen({
         Panah / WASD / geser untuk bergerak · Esc / Spasi / P untuk jeda
       </p>
       <div className="text-center text-xs text-slate-500">
-        Tangkap ⭐ bintang untuk waktu melambat.
+        ⭐ melambat · <span className="text-fuchsia-300">×2</span> skor ganda ·{' '}
+        <span className="text-sky-300">🛡️ tameng</span> ·{' '}
+        <span className="text-amber-300">✨ emas</span> +5
       </div>
     </motion.div>
   )

@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { GRID_SIZE } from '../../core/constants.ts'
 import { CONFETTI_COLORS } from '../../render/particles.ts'
-import type { GameStats } from '../../types/game.ts'
+import type { GameStats, ScoreEntry } from '../../types/game.ts'
 
 interface GameOverScreenProps {
   score: number
@@ -10,6 +11,7 @@ interface GameOverScreenProps {
   stats: GameStats
   newBest: boolean
   won: boolean
+  scores: ScoreEntry[]
   onRestart: () => void
   onMenu: () => void
 }
@@ -43,16 +45,47 @@ export function GameOverScreen({
   stats,
   newBest,
   won,
+  scores,
   onRestart,
   onMenu,
 }: GameOverScreenProps) {
+  const latestAt = scores.reduce((max, entry) => Math.max(max, entry.at), 0)
+  const [shared, setShared] = useState(false)
+  const [shareError, setShareError] = useState(false)
+
+  const handleShare = async () => {
+    const text = `Saya dapat ${score} poin di Snake X${won ? ' dan MENANG! 🏆' : ''} — bisa ngalahin? 🐍`
+    const url = typeof window !== 'undefined' ? window.location.href : ''
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        const shared = await Promise.race([
+          navigator.share({ text, url }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('share-timeout')), 2000),
+          ),
+        ])
+        void shared
+        setShared(true)
+        return
+      } catch {
+        // fall through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`)
+      setShared(true)
+    } catch {
+      setShareError(true)
+    }
+  }
+
   return (
     <motion.div
       key="gameover"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden bg-black/60 backdrop-blur-sm"
+      className="absolute inset-0 z-10 flex items-center justify-center overflow-y-auto bg-black/60 backdrop-blur-sm"
     >
       {won && (
         <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -68,7 +101,7 @@ export function GameOverScreen({
           ))}
         </div>
       )}
-      <div className="mx-4 w-full max-w-xs rounded-2xl border border-surface-800 bg-surface-900/95 p-6 text-center">
+      <div className="mx-4 my-4 w-full max-w-xs rounded-2xl border border-surface-800 bg-surface-900/95 p-6 text-center">
         <h2
           className={`font-display text-2xl font-bold ${won ? 'text-snake-300' : 'text-rose-400'}`}
         >
@@ -87,6 +120,33 @@ export function GameOverScreen({
           <Stat label="Best" value={highScore} accent="text-amber-300" />
         </div>
 
+        {!won && scores.length > 0 && (
+          <div className="mt-4 rounded-xl border border-surface-800 bg-surface-950/50 p-3 text-left">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              🏅 Skor Teratas
+            </div>
+            <ol className="space-y-1">
+              {scores.map((entry, idx) => (
+                <li
+                  key={`${entry.at}-${idx}`}
+                  className={`flex items-center justify-between rounded-lg px-2 py-1 text-sm ${
+                    entry.at === latestAt
+                      ? 'bg-snake-500/15 text-snake-300'
+                      : 'text-slate-300'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 font-bold text-slate-500">{idx + 1}</span>
+                    <span>{entry.score}</span>
+                    {entry.won && <span title="Menang">🏆</span>}
+                  </span>
+                  <span className="text-xs text-slate-500">{entry.length} seg</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
         <p className="mt-3 text-xs text-slate-400">
           Isi papan penuh ({GRID_SIZE}×{GRID_SIZE}) untuk menang.
         </p>
@@ -95,7 +155,15 @@ export function GameOverScreen({
           Game ke-{Math.max(1, stats.games)} · Menang {stats.wins}× · Panjang maks {stats.maxLength}
         </p>
 
-        <div className="mt-5 flex flex-col gap-2.5">
+        <div className="mt-4 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={shared}
+            className="rounded-xl border border-sky-800 bg-sky-500/15 px-6 py-2.5 font-semibold text-sky-300 transition hover:bg-sky-500/25 active:scale-95 disabled:opacity-60"
+          >
+            {shared ? '✅ Tersalin!' : shareError ? '📋 Bagikan (gagal)' : '📤 Bagikan Skor'}
+          </button>
           <button
             type="button"
             onClick={onRestart}

@@ -26,6 +26,33 @@ export function spawnFood(
   return free[Math.floor(random() * free.length)]
 }
 
+/**
+ * Pick a random free cell for a bonus (golden) food, avoiding the snake and
+ * the current normal food. Returns null when no free cell exists.
+ */
+export function spawnBonusFood(
+  snake: Position[],
+  food: Position | null,
+  gridSize: number = GRID_SIZE,
+  random: () => number = Math.random,
+): Position | null {
+  const occupied = new Set(snake.map((cell) => `${cell.x},${cell.y}`))
+  if (food) occupied.add(`${food.x},${food.y}`)
+  const totalCells = gridSize * gridSize
+  if (occupied.size >= totalCells) return null
+
+  const free: Position[] = []
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      if (!occupied.has(`${x},${y}`)) {
+        free.push({ x, y })
+      }
+    }
+  }
+
+  return free[Math.floor(random() * free.length)]
+}
+
 export function initialSnake(gridSize: number = GRID_SIZE): Position[] {
   const half = Math.floor(gridSize / 2)
   const length = 4

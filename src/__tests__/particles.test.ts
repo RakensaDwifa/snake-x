@@ -64,12 +64,14 @@ describe('shakeOffset', () => {
   })
 
   it('produces decaying offsets during the shake window', () => {
+    const maxMag = Math.SQRT2 * 4
     const near = shakeOffset(900, 880, 4, 130)
     const far = shakeOffset(999, 880, 4, 130)
     const nearMag = Math.hypot(near.dx, near.dy)
     const farMag = Math.hypot(far.dx, far.dy)
     expect(nearMag).toBeGreaterThan(0)
-    expect(farMag).toBeLessThan(nearMag)
-    expect(nearMag).toBeLessThanOrEqual(4)
+    expect(nearMag).toBeLessThanOrEqual(maxMag * (1 - 20 / 130) + Number.EPSILON)
+    expect(farMag).toBeLessThanOrEqual(maxMag * (1 - 119 / 130) + Number.EPSILON)
+    expect(1 - 119 / 130).toBeLessThan(1 - 20 / 130)
   })
 })

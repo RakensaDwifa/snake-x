@@ -1,11 +1,28 @@
 import { describe, expect, it } from 'vitest'
 import { GRID_SIZE } from '../core/constants.ts'
-import { spawnPowerUp } from '../core/powerUp.ts'
+import { randomPowerUpKind, spawnPowerUp } from '../core/powerUp.ts'
 import { stepSnake } from '../core/snakeLogic.ts'
 
 function r(x: number, y: number) {
   return { x, y }
 }
+
+describe('randomPowerUpKind', () => {
+  it('returns slow for rolls below 0.5', () => {
+    expect(randomPowerUpKind(() => 0)).toBe('slow')
+    expect(randomPowerUpKind(() => 0.49)).toBe('slow')
+  })
+
+  it('returns double for rolls between 0.5 and 0.8', () => {
+    expect(randomPowerUpKind(() => 0.5)).toBe('double')
+    expect(randomPowerUpKind(() => 0.79)).toBe('double')
+  })
+
+  it('returns shield for rolls above 0.8', () => {
+    expect(randomPowerUpKind(() => 0.8)).toBe('shield')
+    expect(randomPowerUpKind(() => 0.9)).toBe('shield')
+  })
+})
 
 describe('spawnPowerUp', () => {
   it('places a power-up on a free cell, away from the snake and food', () => {

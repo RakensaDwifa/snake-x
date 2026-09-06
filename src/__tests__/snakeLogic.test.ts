@@ -5,6 +5,7 @@ import {
   isOutOfBounds,
   positionsEqual,
   stepSnake,
+  wrapPosition,
 } from '../core/snakeLogic.ts'
 import { initialSnake, spawnFood } from '../core/food.ts'
 import { GRID_SIZE } from '../core/constants.ts'
@@ -72,6 +73,59 @@ describe('stepSnake', () => {
     const result = stepSnake(snake, 'LEFT', r(9, 9))
     expect(result.dead).toBe(false)
     expect(result.snake).toHaveLength(4)
+  })
+})
+
+describe('wrapPosition', () => {
+  it('wraps coordinates back into the grid', () => {
+    expect(wrapPosition(r(-1, 0), 10)).toEqual(r(9, 0))
+    expect(wrapPosition(r(10, 3), 10)).toEqual(r(0, 3))
+    expect(wrapPosition(r(2, -5), 10)).toEqual(r(2, 5))
+    expect(wrapPosition(r(5, 5), 10)).toEqual(r(5, 5))
+  })
+})
+
+describe('stepSnake with wrap', () => {
+  it('wraps to the opposite edge instead of dying when wrap is enabled', () => {
+    const atRight = [
+      r(GRID_SIZE - 1, 5),
+      r(GRID_SIZE - 2, 5),
+      r(GRID_SIZE - 3, 5),
+      r(GRID_SIZE - 4, 5),
+    ]
+    const result = stepSnake(atRight, 'RIGHT', r(9, 9), GRID_SIZE, null, { wrap: true })
+    expect(result.dead).toBe(false)
+    expect(result.snake[0]).toEqual(r(0, 5))
+    expect(result.snake).toHaveLength(4)
+  })
+
+  it('wraps upward into the bottom rows', () => {
+    const atTop = [
+      r(5, 0),
+      r(5, 1),
+      r(4, 1),
+      r(3, 1),
+    ]
+    const result = stepSnake(atTop, 'UP', r(9, 9), GRID_SIZE, null, { wrap: true })
+    expect(result.dead).toBe(false)
+    expect(result.snake[0]).toEqual(r(5, GRID_SIZE - 1))
+  })
+
+  it('still dies without wrap', () => {
+    const atRight = [
+      r(GRID_SIZE - 1, 5),
+      r(GRID_SIZE - 2, 5),
+      r(GRID_SIZE - 3, 5),
+      r(GRID_SIZE - 4, 5),
+    ]
+    const result = stepSnake(atRight, 'RIGHT', r(9, 9))
+    expect(result.dead).toBe(true)
+  })
+
+  it('still dies on self collision even with wrap', () => {
+    const loop = [r(5, 5), r(4, 5), r(3, 5), r(3, 6), r(4, 6), r(5, 6)]
+    const result = stepSnake(loop, 'LEFT', r(9, 9), GRID_SIZE, null, { wrap: true })
+    expect(result.dead).toBe(true)
   })
 })
 

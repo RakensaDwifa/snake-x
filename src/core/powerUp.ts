@@ -1,6 +1,14 @@
 import { GRID_SIZE } from './constants.ts'
 import type { Position, PowerUp, PowerUpKind } from '../types/game.ts'
 
+/** Weighted random power-up kind: slow 50%, double 30%, shield 20%. */
+export function randomPowerUpKind(random: () => number = Math.random): PowerUpKind {
+  const roll = random()
+  if (roll < 0.5) return 'slow'
+  if (roll < 0.8) return 'double'
+  return 'shield'
+}
+
 /**
  * Pick a random free cell for a power-up, avoiding the snake and the food.
  * Returns null when no free cell exists.

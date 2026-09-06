@@ -18,7 +18,7 @@ export interface StepResult {
   powerUpEaten: PowerUpKind | null
 }
 
-export type PowerUpKind = 'slow'
+export type PowerUpKind = 'slow' | 'double' | 'shield'
 
 export interface PowerUp {
   pos: Position
@@ -26,9 +26,20 @@ export interface PowerUp {
   bornTick: number
 }
 
+export interface StepOptions {
+  wrap?: boolean
+}
+
 export interface GameStats {
   games: number
   totalFood: number
   maxLength: number
   wins: number
+}
+
+export interface ScoreEntry {
+  score: number
+  length: number
+  won: boolean
+  at: number
 }

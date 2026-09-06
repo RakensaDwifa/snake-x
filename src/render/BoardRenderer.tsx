@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { MutableRefObject } from 'react'
-import { GRID_SIZE } from '../core/constants.ts'
+import { BONUS_FOOD_LIFETIME_MS, GRID_SIZE } from '../core/constants.ts'
 import { shakeOffset, updateFloats, updateParticles } from './particles.ts'
 import type { FloatText, Particle } from './particles.ts'
-import type { Position, PowerUp } from '../types/game.ts'
+import type { Position, PowerUp, PowerUpKind } from '../types/game.ts'
 
 export interface BoardRendererProps {
   snakeRef: MutableRefObject<Position[]>
   prevSnakeRef: MutableRefObject<Position[]>
   foodRef: MutableRefObject<Position | null>
+  bonusFoodRef: MutableRefObject<Position | null>
+  bonusFoodExpireAtRef: MutableRefObject<number>
+  shieldFreezeUntilRef: MutableRefObject<number>
   flashRef: MutableRefObject<number>
   shakeRef: MutableRefObject<number>
   particlesRef: MutableRefObject<Particle[]>
@@ -27,6 +30,9 @@ export function BoardRenderer({
   snakeRef,
   prevSnakeRef,
   foodRef,
+  bonusFoodRef,
+  bonusFoodExpireAtRef,
+  shieldFreezeUntilRef,
   flashRef,
   shakeRef,
   particlesRef,
@@ -86,6 +92,11 @@ export function BoardRenderer({
         drawFood(ctx, foodCell, cell, now)
       }
 
+      const bonusCell = bonusFoodRef.current
+      if (bonusCell && bonusFoodExpireAtRef.current > now) {
+        drawBonusFood(ctx, bonusCell, cell, now, bonusFoodExpireAtRef.current)
+      }
+
       for (const powerUp of powerUpsRef.current) {
         drawPowerUp(ctx, powerUp, cell, now)
       }
@@ -102,12 +113,32 @@ export function BoardRenderer({
         drawSegment(ctx, px, py, cell - gap, i, cur.length, flashing && i === 0)
       }
 
+      if (shieldFreezeUntilRef.current > now) {
+        const headCur = cur[0]
+        const headPrev = prev[0] ?? headCur
+        const hx = lerp(headPrev.x, headCur.x, interp) * cell + cell / 2
+        const hy = lerp(headPrev.y, headCur.y, interp) * cell + cell / 2
+        drawShieldRing(ctx, hx, hy, cell, now)
+      }
+
       if (!reduced) {
         drawParticles(ctx, particlesRef.current, cell)
         drawFloats(ctx, floatsRef.current, cell)
       }
     },
-    [flashRef, floatsRef, foodRef, particlesRef, powerUpsRef, prevSnakeRef, shakeRef, snakeRef],
+    [
+      bonusFoodExpireAtRef,
+      bonusFoodRef,
+      flashRef,
+      floatsRef,
+      foodRef,
+      particlesRef,
+      powerUpsRef,
+      prevSnakeRef,
+      shakeRef,
+      shieldFreezeUntilRef,
+      snakeRef,
+    ],
   )
 
   useEffect(() => {
@@ -195,33 +226,96 @@ function drawFood(ctx: CanvasRenderingContext2D, food: Position, cell: number, n
   ctx.fill()
 }
 
+function drawBonusFood(
+  ctx: CanvasRenderingContext2D,
+  pos: Position,
+  cell: number,
+  now: number,
+  expireAt: number,
+) {
+  const lifetime = BONUS_FOOD_LIFETIME_MS
+  const frac = Math.max(0, Math.min(1, (expireAt - now) / lifetime))
+  const cx = (pos.x + 0.5) * cell
+  const cy = (pos.y + 0.5) * cell
+  const pulse = 1 + Math.sin(now / 180) * 0.15
+
+  const halo = cell * (0.5 + 0.3 * frac) * pulse
+  const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, halo)
+  gradient.addColorStop(0, `rgba(251, 191, 36, ${0.5 * frac})`)
+  gradient.addColorStop(1, 'rgba(251, 191, 36, 0)')
+  ctx.fillStyle = gradient
+  ctx.beginPath()
+  ctx.arc(cx, cy, halo, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.globalAlpha = 0.3 + 0.7 * frac
+  ctx.shadowColor = 'rgba(251, 191, 36, 0.95)'
+  ctx.shadowBlur = 16
+  const size = cell * 0.5 * pulse
+  drawStar(ctx, cx, cy, size, '#fbbf24')
+  ctx.shadowBlur = 0
+  ctx.globalAlpha = 1
+}
+
+function drawShieldRing(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  cell: number,
+  now: number,
+) {
+  const pulse = 1 + Math.sin(now / 260) * 0.08
+  ctx.beginPath()
+  ctx.arc(cx, cy, cell * 0.7 * pulse, 0, Math.PI * 2)
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)'
+  ctx.lineWidth = Math.max(2, cell * 0.09)
+  ctx.stroke()
+
+  ctx.beginPath()
+  ctx.arc(cx, cy, cell * 0.92 * pulse, 0, Math.PI * 2)
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)'
+  ctx.lineWidth = Math.max(1, cell * 0.04)
+  ctx.stroke()
+}
+
 function drawPowerUp(ctx: CanvasRenderingContext2D, powerUp: PowerUp, cell: number, now: number) {
   const cx = (powerUp.pos.x + 0.5) * cell
   const cy = (powerUp.pos.y + 0.5) * cell
 
+  const { color, glow } = kindStyle(powerUp.kind)
   const pulse = 1 + Math.sin(now / 220) * 0.12
   const halo = cell * 0.85 * pulse
   const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, halo)
-  gradient.addColorStop(0, 'rgba(167, 139, 250, 0.55)')
-  gradient.addColorStop(1, 'rgba(167, 139, 250, 0)')
+  gradient.addColorStop(0, glow)
+  gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
   ctx.fillStyle = gradient
   ctx.beginPath()
   ctx.arc(cx, cy, halo, 0, Math.PI * 2)
   ctx.fill()
 
   const size = cell * 0.5
-  ctx.shadowColor = 'rgba(167, 139, 250, 0.95)'
+  ctx.shadowColor = glow
   ctx.shadowBlur = 14
-  drawStar(ctx, cx, cy, size)
+  drawStar(ctx, cx, cy, size, color)
   ctx.shadowBlur = 0
 
   ctx.fillStyle = 'rgba(250, 245, 255, 0.95)'
-  ctx.font = `bold ${Math.round(cell * 0.3)}px Inter, sans-serif`
+  ctx.font = `bold ${Math.round(cell * 0.28)}px Inter, sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText('SLOW', cx, cy + size * 1.4)
+  ctx.fillText(kindLabel(powerUp.kind), cx, cy + size * 1.45)
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
+}
+
+function kindStyle(kind: PowerUpKind): { color: string; glow: string; label: string } {
+  if (kind === 'shield') return { color: '#38bdf8', glow: 'rgba(56, 189, 248, 0.55)', label: '🛡️' }
+  if (kind === 'double') return { color: '#e879f9', glow: 'rgba(232, 121, 249, 0.55)', label: '×2' }
+  return { color: '#a78bfa', glow: 'rgba(167, 139, 250, 0.55)', label: 'SLOW' }
+}
+
+function kindLabel(kind: PowerUpKind): string {
+  return kindStyle(kind).label
 }
 
 function drawStar(
@@ -229,6 +323,7 @@ function drawStar(
   cx: number,
   cy: number,
   outerRadius: number,
+  color = '#a78bfa',
 ) {
   const innerRadius = outerRadius * 0.45
   ctx.beginPath()
@@ -241,7 +336,7 @@ function drawStar(
     else ctx.lineTo(x, y)
   }
   ctx.closePath()
-  ctx.fillStyle = '#a78bfa'
+  ctx.fillStyle = color
   ctx.fill()
 }
 
@@ -267,7 +362,7 @@ function drawFloats(ctx: CanvasRenderingContext2D, floats: FloatText[], cell: nu
     const x = f.x * cell
     const y = f.y * cell - ratio * cell * 1.2
     ctx.globalAlpha = Math.max(0, 1 - ratio)
-    ctx.fillStyle = '#6ee7b7'
+    ctx.fillStyle = f.color ?? '#6ee7b7'
     ctx.fillText(f.text, x, y)
   }
   ctx.globalAlpha = 1

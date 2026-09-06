@@ -1,7 +1,11 @@
+import { loadVolume, saveVolume } from '../lib/storage.ts'
+
 const MUTE_KEY = 'snake-x-muted'
 
 let ctx: AudioContext | null = null
+let masterGain: GainNode | null = null
 let muted = loadMute()
+let volume = loadVolume()
 
 function loadMute(): boolean {
   try {
@@ -28,10 +32,23 @@ export function unlockAudio(): void {
   try {
     if (typeof window !== 'undefined' && 'AudioContext' in window) {
       ctx = new AudioContext()
+      masterGain = ctx.createGain()
+      masterGain.gain.value = volume
+      masterGain.connect(ctx.destination)
     }
   } catch {
     ctx = null
   }
+}
+
+/** The shared AudioContext, or null when audio is not unlocked yet. */
+export function getSharedContext(): AudioContext | null {
+  return ctx
+}
+
+/** The master gain all audio (sfx + music) routes through, or null. */
+export function getMasterGain(): GainNode | null {
+  return masterGain
 }
 
 export function isMuted(): boolean {
@@ -43,16 +60,28 @@ export function setMuted(value: boolean): void {
   persistMute()
 }
 
+export function setVolume(value: number): void {
+  volume = Math.min(1, Math.max(0, value))
+  saveVolume(volume)
+  if (ctx && masterGain) {
+    masterGain.gain.setTargetAtTime(volume, ctx.currentTime, 0.01)
+  }
+}
+
+export function getVolume(): number {
+  return volume
+}
+
 let lastNoteAt = 0
 
 function blip(
   frequency: number,
   duration: number,
   type: OscillatorType,
-  volume = 0.08,
+  volumeLevel = 0.08,
   delayMs = 0,
 ): void {
-  if (muted || !ctx) return
+  if (muted || !ctx || !masterGain) return
   const now = ctx.currentTime
   const start = now + delayMs / 1000
   const osc = ctx.createOscillator()
@@ -60,9 +89,9 @@ function blip(
   osc.type = type
   osc.frequency.setValueAtTime(frequency, start)
   gain.gain.setValueAtTime(0.0001, start)
-  gain.gain.exponentialRampToValueAtTime(volume, start + 0.008)
+  gain.gain.exponentialRampToValueAtTime(volumeLevel, start + 0.008)
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration / 1000)
-  osc.connect(gain).connect(ctx.destination)
+  osc.connect(gain).connect(masterGain)
   osc.start(start)
   osc.stop(start + duration / 1000 + 0.02)
 }
@@ -112,5 +141,21 @@ export const sfx = {
     if (debounceNote()) return
     blip(880, 70, 'sine', 0.07)
     blip(1174, 120, 'sine', 0.07, 70)
+  },
+  gold(): void {
+    blip(1046, 80, 'triangle', 0.08)
+    blip(1568, 140, 'triangle', 0.07, 80)
+  },
+  shieldBreak(): void {
+    blip(600, 60, 'sawtooth', 0.06)
+    blip(420, 90, 'sawtooth', 0.06, 50)
+    blip(250, 160, 'sawtooth', 0.07, 110)
+  },
+  countdown(): void {
+    blip(392, 70, 'sine', 0.06)
+  },
+  go(): void {
+    blip(523, 90, 'triangle', 0.08)
+    blip(784, 160, 'triangle', 0.08, 80)
   },
 }

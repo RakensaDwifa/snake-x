@@ -1,6 +1,8 @@
 export const EAT_COLORS = ['#34d399', '#6ee7b7', '#a7f3d0']
 export const DEATH_COLORS = ['#f43f5e', '#fb7185', '#fda4af']
 export const POWERUP_COLORS = ['#a78bfa', '#c084fc', '#f0abfc']
+export const GOLDEN_COLORS = ['#fbbf24', '#fde68a', '#f59e0b']
+export const SHIELD_COLORS = ['#38bdf8', '#7dd3fc', '#bae6fd']
 export const CONFETTI_COLORS = ['#34d399', '#6ee7b7', '#fbbf24', '#fb7185', '#a78bfa', '#38bdf8']
 
 export interface Particle {
@@ -21,6 +23,7 @@ export interface FloatText {
   text: string
   age: number
   duration: number
+  color?: string
 }
 
 interface BurstOptions {
@@ -82,8 +85,14 @@ export function updateParticles(particles: Particle[], dt: number): Particle[] {
   return alive
 }
 
-export function spawnFloat(x: number, y: number, text: string, duration = 700): FloatText {
-  return { x, y, text, age: 0, duration }
+export function spawnFloat(
+  x: number,
+  y: number,
+  text: string,
+  duration = 700,
+  color?: string,
+): FloatText {
+  return { x, y, text, age: 0, duration, color }
 }
 
 export function updateFloats(floats: FloatText[], dt: number): FloatText[] {

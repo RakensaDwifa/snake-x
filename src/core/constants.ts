@@ -37,7 +37,25 @@ export const POWERUP_EVERY_FOOD = 4
 export const POWERUP_LIFETIME_TICKS = 15
 export const POWERUP_SLOW_FACTOR = 1.5
 export const POWERUP_SLOW_DURATION_MS = 8000
+export const POWERUP_DOUBLE_DURATION_MS = 8000
+export const SHIELD_FREEZE_MS = 3000
 export const POWERUP_SCORE_BONUS = 2
+
+export const COMBO_WINDOW_MS = 4000
+export const COMBO_MAX_MULTIPLIER = 5
+
+export const BONUS_FOOD_POINTS = 5
+export const BONUS_FOOD_CHANCE = 0.15
+export const BONUS_FOOD_LIFETIME_MS = 4000
+
+export const COUNTDOWN_MS = 850
+export const COUNTDOWN_START = 3
+
+export const WRAP_KEY = 'snake-x-wrap'
+export const SCORES_KEY = 'snake-x-scores'
+export const MAX_SCORES = 5
+export const VOLUME_KEY = 'snake-x-volume'
+export const MUSIC_KEY = 'snake-x-music'
 
 export const SPEED_NAME: Record<SpeedMode, string> = {
   slow: 'Santai',
