@@ -33,6 +33,7 @@ export interface Translations {
   resume: string
   restart: string
   menu: string
+  go: string
   // Game Over
   gameOver: string
   won: string
@@ -57,6 +58,19 @@ export interface Translations {
   playTime: string
   // Achievements
   achievementsTitle: string
+  achievement: {
+    first_game: { title: string; desc: string }
+    first_food: { title: string; desc: string }
+    score_50: { title: string; desc: string }
+    score_100: { title: string; desc: string }
+    combo_x3: { title: string; desc: string }
+    combo_x5: { title: string; desc: string }
+    length_25: { title: string; desc: string }
+    length_50: { title: string; desc: string }
+    first_win: { title: string; desc: string }
+    gold_10: { title: string; desc: string }
+    games_10: { title: string; desc: string }
+  }
   // Onboarding
   onboardingTitle: string
   onboardingSlides: {
@@ -70,6 +84,10 @@ export interface Translations {
   finish: string
   continue: string
   understand: string
+  // Language
+  language: string
+  langID: string
+  langEN: string
 }
 
 const translations: Record<Locale, Translations> = {
@@ -102,6 +120,7 @@ const translations: Record<Locale, Translations> = {
     resume: '▶ Lanjut',
     restart: '↻ Mulai Ulang',
     menu: 'Menu',
+    go: 'MULAI!',
     gameOver: '💀 Game Over',
     won: '🏆 MENANG!',
     newRecord: '🎉 REKOR BARU!',
@@ -123,6 +142,19 @@ const translations: Record<Locale, Translations> = {
     goldEaten: 'Emas Dimakan',
     playTime: 'Waktu Main',
     achievementsTitle: '🏆 Pencapaian',
+    achievement: {
+      first_game: { title: 'Langkah Pertama', desc: 'Mainkan pertandingan pertama' },
+      first_food: { title: 'Makan Pertama', desc: 'Makan makanan pertama' },
+      score_50: { title: 'Skor 50', desc: 'Capai skor 50 dalam satu permainan' },
+      score_100: { title: 'Skor 100', desc: 'Capai skor 100 dalam satu permainan' },
+      combo_x3: { title: 'Kombo ×3', desc: 'Dapatkan kombo ×3' },
+      combo_x5: { title: 'Kombo ×5', desc: 'Dapatkan kombo maksimal ×5' },
+      length_25: { title: 'Panjang 25', desc: 'Capai panjang ular 25' },
+      length_50: { title: 'Panjang 50', desc: 'Capai panjang ular 50' },
+      first_win: { title: 'Menang Pertama', desc: 'Isi papan penuh dan menang' },
+      gold_10: { title: 'Pemuja Emas', desc: 'Makan 10 makanan emas' },
+      games_10: { title: 'Pemain Setia', desc: 'Mainkan 10 pertandingan' },
+    },
     onboardingTitle: 'Cara Main',
     onboardingSlides: {
       move: {
@@ -143,6 +175,9 @@ const translations: Record<Locale, Translations> = {
     finish: 'Mengerti, Mulai!',
     continue: 'Lanjut',
     understand: 'Mengerti',
+    language: '🌐 Bahasa',
+    langID: '🇮🇩 Indonesia',
+    langEN: '🇺🇸 English',
   },
   en: {
     title: 'SNAKE X',
@@ -173,6 +208,7 @@ const translations: Record<Locale, Translations> = {
     resume: '▶ Resume',
     restart: '↻ Restart',
     menu: 'Menu',
+    go: 'GO!',
     gameOver: '💀 Game Over',
     won: '🏆 YOU WIN!',
     newRecord: '🎉 NEW RECORD!',
@@ -194,6 +230,19 @@ const translations: Record<Locale, Translations> = {
     goldEaten: 'Gold Eaten',
     playTime: 'Play Time',
     achievementsTitle: '🏆 Achievements',
+    achievement: {
+      first_game: { title: 'First Steps', desc: 'Play your first game' },
+      first_food: { title: 'First Bite', desc: 'Eat your first food' },
+      score_50: { title: 'Score 50', desc: 'Reach score 50 in one game' },
+      score_100: { title: 'Score 100', desc: 'Reach score 100 in one game' },
+      combo_x3: { title: 'Combo ×3', desc: 'Achieve combo ×3' },
+      combo_x5: { title: 'Combo ×5', desc: 'Achieve max combo ×5' },
+      length_25: { title: 'Length 25', desc: 'Reach snake length 25' },
+      length_50: { title: 'Length 50', desc: 'Reach snake length 50' },
+      first_win: { title: 'First Win', desc: 'Fill the board and win' },
+      gold_10: { title: 'Gold Hunter', desc: 'Eat 10 gold food' },
+      games_10: { title: 'Loyal Player', desc: 'Play 10 games' },
+    },
     onboardingTitle: 'How to Play',
     onboardingSlides: {
       move: {
@@ -214,6 +263,9 @@ const translations: Record<Locale, Translations> = {
     finish: 'Got it, Play!',
     continue: 'Continue',
     understand: 'Understood',
+    language: '🌐 Language',
+    langID: '🇮🇩 Indonesian',
+    langEN: '🇺🇸 English',
   },
 }
 

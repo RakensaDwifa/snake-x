@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { GRID_SIZE } from '../../core/constants.ts'
 import { CONFETTI_COLORS } from '../../render/particles.ts'
 import type { GameStats, ScoreEntry } from '../../types/game.ts'
+import { useLocale } from '../../lib/locale.tsx'
 
 interface GameOverScreenProps {
   score: number
@@ -49,12 +50,13 @@ export function GameOverScreen({
   onRestart,
   onMenu,
 }: GameOverScreenProps) {
+  const { t } = useLocale()
   const latestAt = scores.reduce((max, entry) => Math.max(max, entry.at), 0)
   const [shared, setShared] = useState(false)
   const [shareError, setShareError] = useState(false)
 
   const handleShare = async () => {
-    const text = `Saya dapat ${score} poin di Snake X${won ? ' dan MENANG! 🏆' : ''} — bisa ngalahin? 🐍`
+    const text = `${t.share} ${score} ${won ? t.won : ''} — bisa ngalahin? 🐍`
     const url = typeof window !== 'undefined' ? window.location.href : ''
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
@@ -105,25 +107,25 @@ export function GameOverScreen({
         <h2
           className={`font-display text-2xl font-bold ${won ? 'text-snake-300' : 'text-rose-400'}`}
         >
-          {won ? '🏆 MENANG!' : '💀 Game Over'}
+          {won ? t.won : t.gameOver}
         </h2>
 
         {newBest && !won && (
           <div className="mt-2 inline-block rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-300">
-            🎉 REKOR BARU!
+            {t.newRecord}
           </div>
         )}
 
         <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-          <Stat label="Skor" value={score} accent="text-snake-300" />
-          <Stat label="Panjang" value={length} accent="text-slate-200" />
-          <Stat label="Best" value={highScore} accent="text-amber-300" />
+          <Stat label={t.score} value={score} accent="text-snake-300" />
+          <Stat label={t.length} value={length} accent="text-slate-200" />
+          <Stat label={t.bestLabel} value={highScore} accent="text-amber-300" />
         </div>
 
         {!won && scores.length > 0 && (
           <div className="mt-4 rounded-xl border border-surface-800 bg-surface-950/50 p-3 text-left">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              🏅 Skor Teratas
+              {t.topScores}
             </div>
             <ol className="space-y-1">
               {scores.map((entry, idx) => (
@@ -138,7 +140,7 @@ export function GameOverScreen({
                   <span className="flex items-center gap-2">
                     <span className="w-4 font-bold text-slate-500">{idx + 1}</span>
                     <span>{entry.score}</span>
-                    {entry.won && <span title="Menang">🏆</span>}
+                    {entry.won && <span title={t.won}>🏆</span>}
                   </span>
                   <span className="text-xs text-slate-500">{entry.length} seg</span>
                 </li>
@@ -148,11 +150,11 @@ export function GameOverScreen({
         )}
 
         <p className="mt-3 text-xs text-slate-400">
-          Isi papan penuh ({GRID_SIZE}×{GRID_SIZE}) untuk menang.
+          {t.boardFull.replace('{size}', String(GRID_SIZE))}
         </p>
 
         <p className="mt-3 text-xs text-slate-400">
-          Game ke-{Math.max(1, stats.games)} · Menang {stats.wins}× · Panjang maks {stats.maxLength}
+          {t.gameStats.replace('{games}', String(Math.max(1, stats.games))).replace('{wins}', String(stats.wins)).replace('{maxLength}', String(stats.maxLength))}
         </p>
 
         <div className="mt-4 flex flex-col gap-2">
@@ -162,21 +164,21 @@ export function GameOverScreen({
             disabled={shared}
             className="rounded-xl border border-sky-800 bg-sky-500/15 px-6 py-2.5 font-semibold text-sky-300 transition hover:bg-sky-500/25 active:scale-95 disabled:opacity-60"
           >
-            {shared ? '✅ Tersalin!' : shareError ? '📋 Bagikan (gagal)' : '📤 Bagikan Skor'}
+            {shared ? t.shareCopied : shareError ? t.shareFailed : t.share}
           </button>
           <button
             type="button"
             onClick={onRestart}
             className="rounded-xl bg-snake-500 px-6 py-3 font-bold text-surface-950 transition hover:bg-snake-400 active:scale-95"
           >
-            ↻ Main Lagi
+            {t.restart}
           </button>
           <button
             type="button"
             onClick={onMenu}
             className="rounded-xl border border-surface-800 bg-surface-950/40 px-6 py-3 font-semibold text-slate-400 transition hover:text-slate-200 active:scale-95"
           >
-            Menu
+            {t.menu}
           </button>
         </div>
       </div>

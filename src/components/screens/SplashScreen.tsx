@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion'
+import { useLocale } from '../../lib/locale.tsx'
 
 interface SplashScreenProps {
   onContinue: () => void
 }
 
 export function SplashScreen({ onContinue }: SplashScreenProps) {
+  const { t } = useLocale()
   return (
     <motion.div
       key="splash"
@@ -42,7 +44,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
           transition={{ delay: 0.2 }}
           className="font-display text-5xl font-extrabold tracking-tight text-white"
         >
-          SNAKE <span className="text-snake-400">X</span>
+          {t.title}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
@@ -50,7 +52,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
           transition={{ delay: 0.5 }}
           className="mt-2 text-slate-400"
         >
-          menanti dari keyboard...
+          {t.controls}
         </motion.p>
       </div>
 
@@ -62,7 +64,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
         onClick={onContinue}
         className="animate-glow-pulse rounded-2xl border border-snake-500/40 bg-snake-500/10 px-8 py-3 font-semibold text-snake-300 transition hover:bg-snake-500/20 active:scale-95"
       >
-        Ketuk untuk mulai
+        {t.continue}
       </motion.button>
     </motion.div>
   )

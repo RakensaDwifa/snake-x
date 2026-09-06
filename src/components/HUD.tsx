@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { ActiveEffects } from '../hooks/useSnakeGame.ts'
+import { useLocale } from '../lib/locale.tsx'
 
 interface HUDProps {
   score: number
@@ -77,20 +78,21 @@ export function HUD({
   showPause,
   paused,
 }: HUDProps) {
+  const { t } = useLocale()
   return (
     <div className="mb-3 flex w-full max-w-md flex-col gap-2">
       <div className="flex w-full items-center justify-between text-sm">
         <div className="flex items-center gap-3">
           <div className="rounded-xl border border-surface-800 bg-surface-900/60 px-3 py-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-slate-500">Skor</div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-500">{t.score}</div>
             <div className="font-display text-lg font-bold text-snake-300">{score}</div>
           </div>
           <div className="rounded-xl border border-surface-800 bg-surface-900/60 px-3 py-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-slate-500">Panjang</div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-500">{t.length}</div>
             <div className="font-display text-lg font-bold text-slate-200">{length}</div>
           </div>
           <div className="rounded-xl border border-surface-800 bg-surface-900/60 px-3 py-1.5">
-            <div className="text-[10px] uppercase tracking-wide text-slate-500">Best</div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-500">{t.bestLabel}</div>
             <div className="font-display text-lg font-bold text-amber-300">{highScore}</div>
           </div>
         </div>
@@ -100,7 +102,7 @@ export function HUD({
             type="button"
             onClick={onToggleMute}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-800 bg-surface-900/60 text-slate-300 active:scale-90"
-            aria-label={muted ? 'Nyalakan suara' : 'Matikan suara'}
+            aria-label={muted ? t.muteOff : t.muteOn}
           >
             {muted ? '🔇' : '🔊'}
           </button>
@@ -109,7 +111,7 @@ export function HUD({
               type="button"
               onClick={onPause}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-800 bg-surface-900/60 text-snake-300 active:scale-90"
-              aria-label="Jeda"
+              aria-label={t.paused}
             >
               ⏸
             </button>
@@ -121,9 +123,9 @@ export function HUD({
         {combo >= 2 && (
           <div
             className="rounded-lg border border-orange-800 bg-orange-500/15 px-2 py-1 text-sm font-bold text-orange-300"
-            title={`Kombo ${activeEffects.double ? '×2' : '×1'} skor`}
+            title={t.combo.replace('{combo}', String(Math.min(combo, 5)))}
           >
-            🔥 ×{Math.min(combo, 5)}
+            {t.combo.replace('{combo}', String(Math.min(combo, 5)))}
           </div>
         )}
         <EffectChip
@@ -132,7 +134,7 @@ export function HUD({
           ms={0}
           color="bg-sky-400"
           colorBar="bg-sky-400"
-          title="Tameng siap menahan satu hantaman"
+          title={t.legend.shield}
           paused={paused}
         >
           🛡️
@@ -143,7 +145,7 @@ export function HUD({
           ms={slowMs}
           color="bg-sky-400"
           colorBar="bg-sky-400"
-          title="Waktu melambat"
+          title={t.legend.slow}
           paused={paused}
         >
           🐢
@@ -154,7 +156,7 @@ export function HUD({
           ms={doubleMs}
           color="bg-fuchsia-400"
           colorBar="bg-fuchsia-400"
-          title="Skor 2×"
+          title={t.legend.double}
           paused={paused}
         >
           ×2

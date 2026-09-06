@@ -1,5 +1,5 @@
 import type { Direction } from '../types/game.ts'
-import { GRID_SIZE } from '../core/constants.ts'
+import { useLocale } from '../lib/locale.tsx'
 
 interface ControlButtonProps {
   label: string
@@ -34,6 +34,7 @@ interface ControlsProps {
 }
 
 export function Controls({ onChangeDirection, onPause, onResume, paused }: ControlsProps) {
+  const { t } = useLocale()
   if (!onChangeDirection) return null
 
   return (
@@ -56,7 +57,7 @@ export function Controls({ onChangeDirection, onPause, onResume, paused }: Contr
       />
 
       <div className="w-24 text-center text-[11px] leading-tight text-slate-500">
-        Grid {GRID_SIZE}×{GRID_SIZE} · geser atau panah
+        {t.controls}
       </div>
     </div>
   )

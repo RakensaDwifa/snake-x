@@ -1,20 +1,21 @@
 import { motion } from 'framer-motion'
 import type { CountdownValue } from '../core/countdown.ts'
+import { useLocale } from '../lib/locale.tsx'
 
 interface CountdownOverlayProps {
   value: CountdownValue
 }
 
-const LABEL: Record<NonNullable<CountdownValue>, { text: string; color: string }> = {
-  3: { text: '3', color: 'text-slate-200' },
-  2: { text: '2', color: 'text-slate-200' },
-  1: { text: '1', color: 'text-snake-300' },
-  0: { text: 'GO!', color: 'text-snake-400' },
-}
-
 export function CountdownOverlay({ value }: CountdownOverlayProps) {
+  const { t } = useLocale()
   if (value === null) return null
-  const { text, color } = LABEL[value]
+  
+  const getLabel = (v: NonNullable<CountdownValue>) => {
+    if (v === 0) return { text: t.go, color: 'text-snake-400' }
+    return { text: String(v), color: v === 1 ? 'text-snake-300' : 'text-slate-200' }
+  }
+  
+  const { text, color } = getLabel(value)
   return (
     <motion.div
       key={value}

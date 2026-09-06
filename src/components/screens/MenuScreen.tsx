@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import type { SpeedMode, GameStats } from '../../types/game.ts'
-import { SPEED_NAME, GRID_SIZE } from '../../core/constants.ts'
+import { GRID_SIZE } from '../../core/constants.ts'
 import { ACHIEVEMENTS } from '../../core/achievements.ts'
 import { loadOnboarded, saveOnboarded } from '../../core/onboarding.ts'
 import { OnboardingOverlay } from './OnboardingOverlay.tsx'
+import { useLocale } from '../../lib/locale.tsx'
 
 interface MenuScreenProps {
   highScore: number
@@ -47,6 +48,7 @@ export function MenuScreen({
   onToggleWrap,
   onVolume,
 }: MenuScreenProps) {
+  const { t, locale, setLocale } = useLocale()
   const [showStats, setShowStats] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -62,6 +64,12 @@ export function MenuScreen({
     setShowOnboarding(false)
   }
 
+  const SPEED_NAME: Record<SpeedMode, string> = {
+    slow: t.speedSlow,
+    normal: t.speedNormal,
+    fast: t.speedFast,
+  }
+
   return (
     <motion.div
       key="menu"
@@ -73,17 +81,17 @@ export function MenuScreen({
     >
       <div className="text-center">
         <h1 className="font-display text-4xl font-extrabold text-white">
-          SNAKE <span className="text-snake-400">X</span>
+          {t.title}
         </h1>
         {highScore > 0 && (
-          <p className="mt-2 text-sm font-semibold text-amber-300">🏆 Best: {highScore}</p>
+          <p className="mt-2 text-sm font-semibold text-amber-300">{t.best.replace('{score}', String(highScore))}</p>
         )}
       </div>
 
       <div className="w-full space-y-4 rounded-2xl border border-surface-800 bg-surface-900/70 p-5">
         <div>
           <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Kecepatan
+            {t.speed}
           </div>
           <div className="grid grid-cols-3 gap-2">
             {SPEED_ORDER.map((mode) => (
@@ -105,15 +113,15 @@ export function MenuScreen({
 
         <div className="flex items-center justify-between rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 text-xs text-slate-400">
           <span>
-            Grid {GRID_SIZE}×{GRID_SIZE}
+            {t.grid.replace('{size}', String(GRID_SIZE))}
           </span>
           <span onClick={onToggleMute} className="cursor-pointer select-none" role="button">
-            {muted ? '🔇 suara mati' : '🔊 suara nyala'}
+            {muted ? t.muteOn : t.muteOff}
           </span>
         </div>
 
         <label className="flex cursor-pointer items-center justify-between rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 text-xs text-slate-400">
-          <span>🎵 Musik latar</span>
+          <span>{t.music}</span>
           <button
             type="button"
             role="switch"
@@ -134,7 +142,7 @@ export function MenuScreen({
         {musicOn && (
           <div className="rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 text-xs text-slate-400">
             <div className="mb-1.5 flex justify-between">
-              <span>🔊 Volume</span>
+              <span>{t.volume}</span>
               <span className="font-semibold text-slate-300">{Math.round(volume * 100)}%</span>
             </div>
             <input
@@ -143,14 +151,14 @@ export function MenuScreen({
               max={100}
               value={Math.round(volume * 100)}
               onChange={(e) => onVolume(Number(e.target.value) / 100)}
-              aria-label="Volume"
+              aria-label={t.volume}
               className="w-full accent-emerald-500"
             />
           </div>
         )}
 
         <label className="flex cursor-pointer items-center justify-between rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 text-xs text-slate-400">
-          <span>🔄 Mode tembus dinding (wrap)</span>
+          <span>{t.wrapMode}</span>
           <button
             type="button"
             role="switch"
@@ -167,6 +175,19 @@ export function MenuScreen({
             />
           </button>
         </label>
+
+        <label className="flex cursor-pointer items-center justify-between rounded-xl border border-surface-800 bg-surface-950/50 px-3 py-2.5 text-xs text-slate-400">
+          <span>{t.language}</span>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as 'id' | 'en')}
+            className="rounded-xl border border-surface-700 bg-surface-950/50 px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-snake-400"
+            aria-label={t.language}
+          >
+            <option value="id">{t.langID}</option>
+            <option value="en">{t.langEN}</option>
+          </select>
+        </label>
       </div>
 
       <div className="w-full flex gap-2">
@@ -175,32 +196,28 @@ export function MenuScreen({
           onClick={() => setShowStats(true)}
           className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
         >
-          📊 Statistik
+          {t.statsTitle}
         </button>
         <button
           type="button"
           onClick={() => setShowAchievements(true)}
           className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
         >
-          🏆 Pencapaian
+          {t.achievementsTitle}
         </button>
         <button
           type="button"
           onClick={onStart}
           className="flex-1 rounded-2xl bg-snake-500 px-6 py-4 text-lg font-bold text-surface-950 shadow-[0_0_30px_rgba(16,185,129,0.5)] transition hover:bg-snake-400 active:scale-95"
         >
-          ▶ Mulai Main
+          {t.start}
         </button>
       </div>
 
       <p className="text-center text-xs text-slate-500">
-        Panah / WASD / geser untuk bergerak · Esc / Spasi / P untuk jeda
+        {t.controls}
       </p>
-      <div className="text-center text-xs text-slate-500">
-        ⭐ melambat · <span className="text-fuchsia-300">×2</span> skor ganda ·{' '}
-        <span className="text-sky-300">🛡️ tameng</span> ·{' '}
-        <span className="text-amber-300">✨ emas</span> +5
-      </div>
+      <div className="text-center text-xs text-slate-500" dangerouslySetInnerHTML={{ __html: `${t.legend.slow} · ${t.legend.double} · ${t.legend.shield} · ${t.legend.gold}` }} />
 
       {showStats && (
         <motion.div
@@ -218,27 +235,27 @@ export function MenuScreen({
             exit={{ opacity: 0, scale: 0.92 }}
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-xl font-bold text-white">📊 Statistik</h2>
+              <h2 className="font-display text-xl font-bold text-white">{t.statsTitle}</h2>
               <button
                 type="button"
                 onClick={() => setShowStats(false)}
                 className="text-slate-400 hover:text-white"
-                aria-label="Tutup"
+                aria-label={t.close}
               >
-                ✕
+                {t.close}
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <StatCard label="Total Main" value={stats.games} />
-              <StatCard label="Menang" value={`${stats.wins} (${stats.games > 0 ? Math.round((stats.wins / stats.games) * 100) : 0}%)`} />
-              <StatCard label="Makanan" value={stats.totalFood} />
-              <StatCard label="Skor Terkumpul" value={stats.totalScore} />
-              <StatCard label="Rata-rata" value={stats.games > 0 ? Math.round(stats.totalScore / stats.games) : 0} />
-              <StatCard label="Panjang Maks" value={stats.maxLength} />
-              <StatCard label="Kombo Terbaik" value={`×${stats.bestCombo}`} />
-              <StatCard label="Emas Dimakan" value={stats.goldEaten} />
-              <StatCard label="Waktu Main" value={formatSeconds(stats.playSeconds)} colSpan={2} />
+              <StatCard label={t.totalGames} value={stats.games} />
+              <StatCard label={t.wins} value={`${stats.wins} (${stats.games > 0 ? Math.round((stats.wins / stats.games) * 100) : 0}%)`} />
+              <StatCard label={t.totalFood} value={stats.totalFood} />
+              <StatCard label={t.totalScore} value={stats.totalScore} />
+              <StatCard label={t.avgScore} value={stats.games > 0 ? Math.round(stats.totalScore / stats.games) : 0} />
+              <StatCard label={t.maxLength} value={stats.maxLength} />
+              <StatCard label={t.bestCombo} value={`×${stats.bestCombo}`} />
+              <StatCard label={t.goldEaten} value={stats.goldEaten} />
+              <StatCard label={t.playTime} value={formatSeconds(stats.playSeconds)} colSpan={2} />
             </div>
 
             <button
@@ -246,7 +263,7 @@ export function MenuScreen({
               onClick={() => setShowStats(false)}
               className="w-full rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-2.5 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
             >
-              Tutup
+              {t.close}
             </button>
           </motion.div>
         </motion.div>
@@ -268,14 +285,14 @@ export function MenuScreen({
             exit={{ opacity: 0, scale: 0.92 }}
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-xl font-bold text-white">🏆 Pencapaian</h2>
+              <h2 className="font-display text-xl font-bold text-white">{t.achievementsTitle}</h2>
               <button
                 type="button"
                 onClick={() => setShowAchievements(false)}
                 className="text-slate-400 hover:text-white"
-                aria-label="Tutup"
+                aria-label={t.close}
               >
-                ✕
+                {t.close}
               </button>
             </div>
 
@@ -283,7 +300,13 @@ export function MenuScreen({
               {ACHIEVEMENTS.map((a) => {
                 const unlocked = achievements.has(a.id)
                 return (
-                  <AchievementCard key={a.id} achievement={a} unlocked={unlocked} />
+                  <AchievementCard
+                    key={a.id}
+                    achievement={a}
+                    unlocked={unlocked}
+                    title={t.achievement[a.id]?.title ?? a.title}
+                    description={t.achievement[a.id]?.desc ?? a.description}
+                  />
                 )
               })}
             </div>
@@ -293,7 +316,7 @@ export function MenuScreen({
               onClick={() => setShowAchievements(false)}
               className="w-full rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-2.5 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
             >
-              Tutup
+              {t.close}
             </button>
           </motion.div>
         </motion.div>
@@ -313,7 +336,17 @@ function StatCard({ label, value, colSpan = 1 }: { label: string; value: string 
   )
 }
 
-function AchievementCard({ achievement, unlocked }: { achievement: typeof ACHIEVEMENTS[0]; unlocked: boolean }) {
+function AchievementCard({
+  achievement,
+  unlocked,
+  title,
+  description,
+}: {
+  achievement: typeof ACHIEVEMENTS[0]
+  unlocked: boolean
+  title: string
+  description: string
+}) {
   return (
     <div
       className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${
@@ -321,10 +354,10 @@ function AchievementCard({ achievement, unlocked }: { achievement: typeof ACHIEV
           ? 'border-snake-400 bg-snake-500/15 text-snake-300'
           : 'border-surface-800 bg-surface-950/50 text-slate-400 opacity-50'
       }`}
-      title={achievement.description}
+      title={description}
     >
       <span className="text-lg">{achievement.icon}</span>
-      <span className="font-semibold">{achievement.title}</span>
+      <span className="font-semibold">{title}</span>
       {unlocked && <span className="ml-auto text-snake-400">✓</span>}
     </div>
   )
