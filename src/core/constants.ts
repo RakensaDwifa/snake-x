@@ -56,6 +56,10 @@ export const SCORES_KEY = 'snake-x-scores'
 export const MAX_SCORES = 5
 export const VOLUME_KEY = 'snake-x-volume'
 export const MUSIC_KEY = 'snake-x-music'
+export const PROGRESSION_KEY = 'snake-x-progression'
+export const CURRENCY_KEY = 'snake-x-currency'
+export const INVENTORY_KEY = 'snake-x-inventory'
+export const DAILY_KEY = 'snake-x-daily'
 
 export const SPEED_NAME: Record<SpeedMode, string> = {
   slow: 'Santai',

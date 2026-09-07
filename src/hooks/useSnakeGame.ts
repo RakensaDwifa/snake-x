@@ -36,6 +36,8 @@ import {
 import type { FloatText, Particle } from '../render/particles.ts'
 import * as storage from '../lib/storage.ts'
 import { loadAchievements, saveAchievements, checkAchievements } from '../core/achievements.ts'
+import { addXp, updatePlayStreak } from '../core/progression.ts'
+import { earnGameCoins, earnFoodCoins, earnWinCoins, earnAchievementCoins } from '../core/currency.ts'
 import type {
   Direction,
   GameScreen,
@@ -71,6 +73,24 @@ export interface SnakeGameController {
   musicOn: boolean
   effectUntil: { slow: number; double: number }
   achievements: Set<string>
+  progression: {
+    xp: number
+    level: number
+    xpToNext: number
+    streakLogin: number
+    streakPlay: number
+  }
+  currency: {
+    coins: number
+    totalEarned: number
+    totalSpent: number
+  }
+  inventory: {
+    skins: Record<string, { unlocked: boolean; source: string }>
+    equippedSkin: string
+    powerUpSlots: number
+    equippedPowerUps: string[]
+  }
   snakeRef: React.MutableRefObject<Position[]>
   prevSnakeRef: React.MutableRefObject<Position[]>
   foodRef: React.MutableRefObject<Position | null>
@@ -156,6 +176,10 @@ export function useSnakeGame(): SnakeGameController {
   const goldEatenRef = useRef(0)
   const bestComboRef = useRef(0)
   const playMsRef = useRef(0)
+
+  const [progression, setProgression] = useState(storage.loadProgression)
+  const [currency, setCurrency] = useState(storage.loadCurrency)
+  const [inventory] = useState(storage.loadInventory)
 
   const updateScores = useCallback((list: ScoreEntry[]) => {
     scoresRef.current = list
@@ -281,10 +305,25 @@ export function useSnakeGame(): SnakeGameController {
         }
         return next
       })
+
+      // Update progression
+      const newProgression = addXp(progression, finalScore)
+      const progWithStreaks = updatePlayStreak(newProgression)
+      setProgression(progWithStreaks)
+      storage.saveProgression(progWithStreaks)
+
+      // Update currency
+      const newCurrency = earnGameCoins(currency)
+      const currencyWithFood = earnFoodCoins(newCurrency, foodsEatenRef.current)
+      const currencyWithWin = wonGame ? earnWinCoins(currencyWithFood) : currencyWithFood
+      const currencyWithAchievements = earnAchievementCoins(currencyWithWin)
+      setCurrency(currencyWithAchievements)
+      storage.saveCurrency(currencyWithAchievements)
+
       applyScreen('gameover')
       redraw()
     },
-    [applyScreen, clearCountdown, redraw, updateScores],
+    [applyScreen, clearCountdown, redraw, updateScores, progression, currency],
   )
 
   const tick = useCallback(() => {
@@ -656,6 +695,9 @@ export function useSnakeGame(): SnakeGameController {
     musicOn,
     effectUntil,
     achievements,
+    progression,
+    currency,
+    inventory,
     snakeRef,
     prevSnakeRef,
     foodRef,

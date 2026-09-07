@@ -41,6 +41,38 @@ export interface GameStats {
   playSeconds: number
 }
 
+export interface Progression {
+  xp: number
+  level: number
+  xpToNext: number
+  streakLogin: number
+  streakPlay: number
+  lastLoginDate: string
+  lastPlayDate: string
+}
+
+export interface Currency {
+  coins: number
+  totalEarned: number
+  totalSpent: number
+}
+
+export interface Inventory {
+  skins: Record<string, { unlocked: boolean; source: 'achievement' | 'shop' | 'level' }>
+  equippedSkin: string
+  powerUpSlots: number
+  equippedPowerUps: string[]
+}
+
+export interface DailyData {
+  date: string
+  seed: number
+  completed: boolean
+  score: number
+  quests: { id: string; progress: number; completed: boolean }[]
+  claimedRewards: string[]
+}
+
 export interface ScoreEntry {
   score: number
   length: number

@@ -5,6 +5,9 @@ import { GRID_SIZE } from '../../core/constants.ts'
 import { ACHIEVEMENTS } from '../../core/achievements.ts'
 import { loadOnboarded, saveOnboarded } from '../../core/onboarding.ts'
 import { OnboardingOverlay } from './OnboardingOverlay.tsx'
+import { ProgressionPanel } from '../ProgressionPanel.tsx'
+import { ShopPanel } from '../ShopPanel.tsx'
+import { SkinSelector } from '../SkinSelector.tsx'
 import { useLocale } from '../../lib/locale.tsx'
 
 interface MenuScreenProps {
@@ -16,6 +19,24 @@ interface MenuScreenProps {
   wrapMode: boolean
   stats: GameStats
   achievements: Set<string>
+  progression: {
+    xp: number
+    level: number
+    xpToNext: number
+    streakLogin: number
+    streakPlay: number
+  }
+  currency: {
+    coins: number
+    totalEarned: number
+    totalSpent: number
+  }
+  inventory: {
+    skins: Record<string, { unlocked: boolean; source: string }>
+    equippedSkin: string
+    powerUpSlots: number
+    equippedPowerUps: string[]
+  }
   onSpeed: (m: SpeedMode) => void
   onStart: () => void
   onToggleMute: () => void
@@ -41,6 +62,9 @@ export function MenuScreen({
   wrapMode,
   stats,
   achievements,
+  progression,
+  currency,
+  inventory,
   onSpeed,
   onStart,
   onToggleMute,
@@ -51,6 +75,9 @@ export function MenuScreen({
   const { t, locale, setLocale } = useLocale()
   const [showStats, setShowStats] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
+  const [showProgression, setShowProgression] = useState(false)
+  const [showShop, setShowShop] = useState(false)
+  const [showSkins, setShowSkins] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
@@ -62,6 +89,16 @@ export function MenuScreen({
   const finishOnboarding = () => {
     saveOnboarded()
     setShowOnboarding(false)
+  }
+
+  const handlePurchase = (itemId: string) => {
+    // Purchase logic will be handled by parent
+    console.log('Purchase:', itemId)
+  }
+
+  const handleSelectSkin = (skinId: string) => {
+    // Skin selection will be handled by parent
+    console.log('Select skin:', skinId)
   }
 
   const SPEED_NAME: Record<SpeedMode, string> = {
@@ -190,29 +227,53 @@ export function MenuScreen({
         </label>
       </div>
 
-      <div className="w-full flex gap-2">
-        <button
-          type="button"
-          onClick={() => setShowStats(true)}
-          className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
-        >
-          {t.statsTitle}
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowAchievements(true)}
-          className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
-        >
-          {t.achievementsTitle}
-        </button>
-        <button
-          type="button"
-          onClick={onStart}
-          className="flex-1 rounded-2xl bg-snake-500 px-6 py-4 text-lg font-bold text-surface-950 shadow-[0_0_30px_rgba(16,185,129,0.5)] transition hover:bg-snake-400 active:scale-95"
-        >
-          {t.start}
-        </button>
-      </div>
+      <div className="w-full flex flex-col gap-2">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowStats(true)}
+            className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
+          >
+            {t.statsTitle}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAchievements(true)}
+            className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
+          >
+            {t.achievementsTitle}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowProgression(true)}
+            className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
+          >
+            {t.statsTitle.replace('Statistik', 'Progression')}
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowShop(true)}
+            className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
+          >
+            🛒 Shop
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSkins(true)}
+            className="flex-1 rounded-xl border border-surface-700 bg-surface-950/60 px-4 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
+          >
+            🎨 Skin
+          </button>
+          <button
+            type="button"
+            onClick={onStart}
+            className="flex-1 rounded-2xl bg-snake-500 px-6 py-4 text-lg font-bold text-surface-950 shadow-[0_0_30px_rgba(16,185,129,0.5)] transition hover:bg-snake-400 active:scale-95"
+          >
+            {t.start}
+          </button>
+        </div>
 
       <p className="text-center text-xs text-slate-500">
         {t.controls}
@@ -322,7 +383,42 @@ export function MenuScreen({
         </motion.div>
       )}
 
+      {showProgression && (
+        <ProgressionPanel
+          xp={progression.xp}
+          level={progression.level}
+          xpToNext={progression.xpToNext}
+          streakLogin={progression.streakLogin}
+          streakPlay={progression.streakPlay}
+          onClose={() => setShowProgression(false)}
+        />
+      )}
+
+      {showShop && (
+        <ShopPanel
+          coins={currency.coins}
+          level={progression.level}
+          achievements={achievements}
+          inventory={inventory}
+          onPurchase={handlePurchase}
+          onClose={() => setShowShop(false)}
+        />
+      )}
+
+      {showSkins && (
+        <SkinSelector
+          currentSkin={inventory.equippedSkin}
+          level={progression.level}
+          achievements={achievements}
+          dailyStreak={progression.streakLogin}
+          inventory={inventory}
+          onSelect={handleSelectSkin}
+          onClose={() => setShowSkins(false)}
+        />
+      )}
+
       {showOnboarding && <OnboardingOverlay isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} onFinish={finishOnboarding} />}
+      </div>
     </motion.div>
   )
 }

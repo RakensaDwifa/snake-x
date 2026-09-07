@@ -86,6 +86,9 @@ export default function App() {
             wrapMode={game.wrapMode}
             stats={game.stats}
             achievements={game.achievements}
+            progression={game.progression}
+            currency={game.currency}
+            inventory={game.inventory}
             onSpeed={game.setSpeedMode}
             onStart={handleStart}
             onToggleMute={game.toggleMute}
