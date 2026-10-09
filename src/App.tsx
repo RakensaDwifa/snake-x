@@ -95,6 +95,8 @@ export default function App() {
             onToggleMusic={game.toggleMusic}
             onToggleWrap={game.toggleWrap}
             onVolume={game.setVolume}
+            onPurchase={game.purchaseItem}
+            onSelectSkin={game.equipSkin}
           />
         )}
       </AnimatePresence>

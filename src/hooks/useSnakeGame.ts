@@ -38,6 +38,7 @@ import * as storage from '../lib/storage.ts'
 import { loadAchievements, saveAchievements, checkAchievements } from '../core/achievements.ts'
 import { addXp, updatePlayStreak } from '../core/progression.ts'
 import { earnGameCoins, earnFoodCoins, earnWinCoins, earnAchievementCoins } from '../core/currency.ts'
+import { purchaseItem as purchaseShopItem, getItemById, isItemOwned, setEquippedSkin } from '../core/shop.ts'
 import type {
   Direction,
   GameScreen,
@@ -47,6 +48,7 @@ import type {
   PowerUpKind,
   ScoreEntry,
   SpeedMode,
+  Inventory,
 } from '../types/game.ts'
 
 export interface ActiveEffects {
@@ -85,12 +87,7 @@ export interface SnakeGameController {
     totalEarned: number
     totalSpent: number
   }
-  inventory: {
-    skins: Record<string, { unlocked: boolean; source: string }>
-    equippedSkin: string
-    powerUpSlots: number
-    equippedPowerUps: string[]
-  }
+  inventory: Inventory
   snakeRef: React.MutableRefObject<Position[]>
   prevSnakeRef: React.MutableRefObject<Position[]>
   foodRef: React.MutableRefObject<Position | null>
@@ -114,6 +111,8 @@ export interface SnakeGameController {
   toggleWrap: () => void
   toggleMusic: () => void
   setVolume: (v: number) => void
+  equipSkin: (skinId: string) => void
+  purchaseItem: (itemId: string) => boolean
 }
 
 const PENDING_LIMIT = 3
@@ -179,7 +178,33 @@ export function useSnakeGame(): SnakeGameController {
 
   const [progression, setProgression] = useState(storage.loadProgression)
   const [currency, setCurrency] = useState(storage.loadCurrency)
-  const [inventory] = useState(storage.loadInventory)
+  const [inventory, setInventory] = useState(storage.loadInventory)
+
+  const equipSkin = useCallback((skinId: string) => {
+    setInventory((prev) => {
+      const next = setEquippedSkin(prev, skinId)
+      if (next === prev) return prev
+      storage.saveInventory(next)
+      return next
+    })
+  }, [])
+
+  const purchaseItem = useCallback(
+    (itemId: string): boolean => {
+      const item = getItemById(itemId)
+      if (!item || isItemOwned(inventory, itemId)) return false
+
+      const result = purchaseShopItem(currency, inventory, item)
+      if (!result) return false
+
+      storage.saveCurrency(result.currency)
+      storage.saveInventory(result.inventory)
+      setCurrency(result.currency)
+      setInventory(result.inventory)
+      return true
+    },
+    [currency, inventory],
+  )
 
   const updateScores = useCallback((list: ScoreEntry[]) => {
     scoresRef.current = list
@@ -698,6 +723,8 @@ export function useSnakeGame(): SnakeGameController {
     progression,
     currency,
     inventory,
+    equipSkin,
+    purchaseItem,
     snakeRef,
     prevSnakeRef,
     foodRef,

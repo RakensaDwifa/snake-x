@@ -7,6 +7,10 @@ export interface Translations {
   title: string
   best: string
   speed: string
+  settings: string
+  progressionTitle: string
+  shopTitle: string
+  skinsTitle: string
   speedSlow: string
   speedNormal: string
   speedFast: string
@@ -46,6 +50,9 @@ export interface Translations {
   effectDoubleDesc: string
   effectActive: string
   comboLabel: string
+  purchaseSuccess: string
+  purchaseFailed: string
+  skinEquipped: string
   // Game Over
   gameOver: string
   won: string
@@ -107,6 +114,10 @@ const translations: Record<Locale, Translations> = {
     title: 'SNAKE X',
     best: 'Best: {score}',
     speed: 'Kecepatan',
+    settings: 'Pengaturan',
+    progressionTitle: 'Progres',
+    shopTitle: 'Shop',
+    skinsTitle: 'Skin',
     speedSlow: 'Santai',
     speedNormal: 'Normal',
     speedFast: 'Ngebut',
@@ -143,6 +154,9 @@ const translations: Record<Locale, Translations> = {
     effectDoubleDesc: 'Skor 2×',
     effectActive: 'Aktif',
     comboLabel: 'Combo',
+    purchaseSuccess: 'Berhasil dibeli! 🎉',
+    purchaseFailed: 'Koin tidak cukup',
+    skinEquipped: 'Skin dipakai ✅',
     gameOver: '💀 Game Over',
     won: '🏆 MENANG!',
     newRecord: '🎉 REKOR BARU!',
@@ -205,6 +219,10 @@ const translations: Record<Locale, Translations> = {
     title: 'SNAKE X',
     best: 'Best: {score}',
     speed: 'Speed',
+    settings: 'Settings',
+    progressionTitle: 'Progress',
+    shopTitle: 'Shop',
+    skinsTitle: 'Skins',
     speedSlow: 'Slow',
     speedNormal: 'Normal',
     speedFast: 'Fast',
@@ -241,6 +259,9 @@ const translations: Record<Locale, Translations> = {
     effectDoubleDesc: 'Double score',
     effectActive: 'Active',
     comboLabel: 'Combo',
+    purchaseSuccess: 'Purchased! 🎉',
+    purchaseFailed: 'Not enough coins',
+    skinEquipped: 'Skin equipped ✅',
     gameOver: '💀 Game Over',
     won: '🏆 YOU WIN!',
     newRecord: '🎉 NEW RECORD!',

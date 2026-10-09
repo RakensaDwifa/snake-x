@@ -1,16 +1,14 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useLocale } from '../lib/locale.tsx'
-import { getItemsByCategory, getUnlockStatus, type ShopItem } from '../core/shop.ts'
+import { getItemsByCategory, getUnlockStatus, isItemOwned, type ShopItem } from '../core/shop.ts'
+import type { Inventory } from '../lib/storage.ts'
 
 interface ShopPanelProps {
   coins: number
   level: number
   achievements: Set<string>
-  inventory: {
-    skins: Record<string, { unlocked: boolean; source: string }>
-    powerUpSlots: number
-  }
+  inventory: Inventory
   onPurchase: (itemId: string) => void
   onClose: () => void
 }
@@ -130,17 +128,14 @@ function ShopItemCard({
   coins: number
   level: number
   achievements: Set<string>
-  inventory: {
-    skins: Record<string, { unlocked: boolean; source: string }>
-    powerUpSlots: number
-  }
+  inventory: Inventory
   onPurchase: () => void
 }) {
   const { unlocked, reason } = getUnlockStatus(item, level, achievements)
-  const owned = item.price === 0 && unlocked
+  const owned = isItemOwned(inventory, item.id)
+  // Free items are claimable once their level gate is met; paid items once affordable.
+  const claimable = item.price === 0 ? unlocked && !owned : coins >= item.price
   const affordable = item.price === 0 || coins >= item.price
-  // inventory is passed for future use
-  void inventory
 
   return (
     <div
@@ -173,11 +168,11 @@ function ShopItemCard({
         <button
           type="button"
           onClick={onPurchase}
-          disabled={owned || !affordable}
+          disabled={owned || !claimable}
           className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${
             owned
               ? 'bg-snake-500/20 text-snake-300 cursor-default'
-              : affordable
+              : claimable
               ? 'bg-snake-500 hover:bg-snake-400 text-surface-950'
               : 'bg-surface-800 text-slate-500 cursor-not-allowed'
           }`}

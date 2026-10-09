@@ -150,6 +150,18 @@ export function getShopItems(): ShopItem[] {
 }
 
 export function getItemsByCategory(category: ShopItem['category']): ShopItem[] {
+  // There are no standalone theme items yet, so treat that tab like the store
+  // front page rather than showing the player an empty panel.
+  if (category === 'featured') {
+    const premium = SHOP_ITEMS.filter(item => item.premium)
+    const nextLocked = SHOP_ITEMS.filter(
+      item => !item.premium && item.price === 0 && item.category === 'slots',
+    )
+    return [...premium, ...nextLocked]
+  }
+  if (category === 'themes') {
+    return SHOP_ITEMS.filter(item => item.type === 'skin')
+  }
   return SHOP_ITEMS.filter(item => item.category === category)
 }
 
