@@ -45,6 +45,7 @@ export interface Translations {
   effectDouble: string
   effectDoubleDesc: string
   effectActive: string
+  comboLabel: string
   // Game Over
   gameOver: string
   won: string
@@ -141,6 +142,7 @@ const translations: Record<Locale, Translations> = {
     effectDouble: '×2',
     effectDoubleDesc: 'Skor 2×',
     effectActive: 'Aktif',
+    comboLabel: 'Combo',
     gameOver: '💀 Game Over',
     won: '🏆 MENANG!',
     newRecord: '🎉 REKOR BARU!',
@@ -238,6 +240,7 @@ const translations: Record<Locale, Translations> = {
     effectDouble: '×2',
     effectDoubleDesc: 'Double score',
     effectActive: 'Active',
+    comboLabel: 'Combo',
     gameOver: '💀 Game Over',
     won: '🏆 YOU WIN!',
     newRecord: '🎉 NEW RECORD!',

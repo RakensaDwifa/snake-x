@@ -55,7 +55,13 @@ describe('HUD', () => {
 
   it('shows combo chip when combo >= 2', () => {
     renderHUD({ combo: 3 })
-    expect(screen.getByText('🔥 ×3')).toBeInTheDocument()
+    expect(screen.getByText('×3')).toBeInTheDocument()
+    expect(screen.getByText('🔥')).toBeInTheDocument()
+  })
+
+  it('caps displayed combo at 5', () => {
+    renderHUD({ combo: 9 })
+    expect(screen.getByText('×5')).toBeInTheDocument()
   })
 
   it('hides combo chip when combo < 2', () => {
@@ -70,7 +76,7 @@ describe('HUD', () => {
   })
 
   it('shows slow chip with drain bar when active', () => {
-    renderHUD({ activeEffects: { slow: true, double: false, shield: false }, slowUntil: Date.now() + POWERUP_SLOW_DURATION_MS })
+    renderHUD({ activeEffects: { slow: true, double: false, shield: false }, slowUntil: performance.now() + POWERUP_SLOW_DURATION_MS })
     const slowChip = screen.getByTitle('Waktu melambat')
     expect(slowChip).not.toHaveClass('opacity-40')
     const bar = slowChip.querySelector('.effect-bar')
@@ -79,7 +85,7 @@ describe('HUD', () => {
   })
 
   it('shows double chip with drain bar when active', () => {
-    renderHUD({ activeEffects: { slow: false, double: true, shield: false }, doubleUntil: Date.now() + POWERUP_DOUBLE_DURATION_MS })
+    renderHUD({ activeEffects: { slow: false, double: true, shield: false }, doubleUntil: performance.now() + POWERUP_DOUBLE_DURATION_MS })
     const doubleChip = screen.getByTitle('Skor 2×')
     expect(doubleChip).not.toHaveClass('opacity-40')
     const bar = doubleChip.querySelector('.effect-bar')
@@ -145,14 +151,47 @@ describe('HUD', () => {
   })
 
   it('pauses drain bar animation when paused=true', () => {
-    renderHUD({ activeEffects: { slow: true, double: false, shield: false }, slowUntil: Date.now() + POWERUP_SLOW_DURATION_MS, paused: true })
+    renderHUD({ activeEffects: { slow: true, double: false, shield: false }, slowUntil: performance.now() + POWERUP_SLOW_DURATION_MS, paused: true })
     const bar = screen.getByTitle('Waktu melambat').querySelector('.effect-bar') as HTMLElement
     expect(bar.style.animationPlayState).toBe('paused')
   })
 
   it('runs drain bar animation when paused=false', () => {
-    renderHUD({ activeEffects: { slow: true, double: false, shield: false }, slowUntil: Date.now() + POWERUP_SLOW_DURATION_MS, paused: false })
+    renderHUD({ activeEffects: { slow: true, double: false, shield: false }, slowUntil: performance.now() + POWERUP_SLOW_DURATION_MS, paused: false })
     const bar = screen.getByTitle('Waktu melambat').querySelector('.effect-bar') as HTMLElement
     expect(bar.style.animationPlayState).toBe('running')
   })
+
+  it('formats large numbers with locale separators', () => {
+    renderHUD({ score: 145230, length: 1200, highScore: 987654 })
+    expect(screen.getByText('145.230')).toBeInTheDocument()
+    expect(screen.getByText('1.200')).toBeInTheDocument()
+    expect(screen.getByText('987.654')).toBeInTheDocument()
+  })
+
+  it('renders effect chip labels', () => {
+    renderHUD({ activeEffects: { slow: true, double: false, shield: false }, slowUntil: performance.now() + POWERUP_SLOW_DURATION_MS })
+    expect(screen.getByText('Lambat')).toBeInTheDocument()
+    expect(screen.getByText('Tameng')).toBeInTheDocument()
+  })
+
+  it('shows a live remaining percentage for an active timed effect', () => {
+    renderHUD({ activeEffects: { slow: true, double: false, shield: false }, slowUntil: performance.now() + POWERUP_SLOW_DURATION_MS })
+    const chip = screen.getByTitle('Waktu melambat')
+    const pct = chip.querySelector('.tabular-nums')
+    expect(pct?.textContent).toMatch(/^\d{1,3}%$/)
+  })
+
+  it('shows no percentage for shield, which has no timer', () => {
+    renderHUD({ activeEffects: { slow: false, double: false, shield: true } })
+    const chip = screen.getByTitle('Siap menahan satu hantaman')
+    expect(chip.querySelector('.effect-bar')).toBeNull()
+    expect(screen.getByText('Aktif')).toBeInTheDocument()
+  })
+
+  it('clamps an expired effect to 0%', () => {
+    renderHUD({ activeEffects: { slow: true, double: false, shield: false }, slowUntil: performance.now() - 5000 })
+    expect(screen.getByText('0%')).toBeInTheDocument()
+  })
 })
+
