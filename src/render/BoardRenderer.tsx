@@ -4,10 +4,11 @@ import { BONUS_FOOD_LIFETIME_MS, GRID_SIZE } from '../core/constants.ts'
 import { getSkinColors } from '../core/skins.ts'
 import { shakeOffset, updateFloats, updateParticles } from './particles.ts'
 import type { FloatText, Particle } from './particles.ts'
-import type { Position, PowerUp, PowerUpKind } from '../types/game.ts'
+import type { Direction, Position, PowerUp, PowerUpKind } from '../types/game.ts'
 
 export interface BoardRendererProps {
   skinId: string
+  directionRef: MutableRefObject<Direction>
   snakeRef: MutableRefObject<Position[]>
   prevSnakeRef: MutableRefObject<Position[]>
   foodRef: MutableRefObject<Position | null>
@@ -30,6 +31,7 @@ export interface BoardRendererProps {
  */
 export function BoardRenderer({
   skinId,
+  directionRef,
   snakeRef,
   prevSnakeRef,
   foodRef,
@@ -90,6 +92,7 @@ export function BoardRenderer({
 
       ctx.clearRect(0, 0, width, height)
       drawGrid(ctx, width, height, cell)
+      drawAmbientGlow(ctx, width, height, palette)
 
       const foodCell = foodRef.current
       if (foodCell) {
@@ -108,14 +111,17 @@ export function BoardRenderer({
       const cur = snakeRef.current
       const prev = prevSnakeRef.current
       const flashing = now - flashRef.current < 300
+      const dir = directionRef.current
 
       for (let i = 0; i < cur.length; i++) {
         const curr = cur[i]
         const old = prev[i] ?? curr
         const px = lerp(old.x, curr.x, interp) * cell + gap / 2
         const py = lerp(old.y, curr.y, interp) * cell + gap / 2
-        drawSegment(ctx, px, py, cell - gap, i, cur.length, flashing && i === 0, palette)
+        drawSegment(ctx, px, py, cell - gap, i, cur.length, flashing && i === 0, palette, dir)
       }
+
+      drawVignette(ctx, width, height)
 
       if (shieldFreezeUntilRef.current > now) {
         const headCur = cur[0]
@@ -133,6 +139,7 @@ export function BoardRenderer({
     [
       bonusFoodExpireAtRef,
       bonusFoodRef,
+      directionRef,
       flashRef,
       floatsRef,
       foodRef,
@@ -223,6 +230,7 @@ function drawSegment(
   length: number,
   headFlash: boolean,
   palette: SkinPalette,
+  dir: Direction,
 ) {
   const ratio = Math.min(1, index / Math.max(1, length - 1))
   const isHead = index === 0
@@ -238,15 +246,123 @@ function drawSegment(
   ctx.fill()
   ctx.shadowBlur = 0
 
+  // Soft top-left highlight gives every segment a rounded, glossy feel.
+  if (!headFlash) {
+    ctx.save()
+    roundRect(ctx, x, y, size, size, size * 0.32)
+    ctx.clip()
+    const sheen = ctx.createLinearGradient(x, y, x + size, y + size)
+    sheen.addColorStop(0, 'rgba(255, 255, 255, 0.22)')
+    sheen.addColorStop(0.55, 'rgba(255, 255, 255, 0)')
+    ctx.fillStyle = sheen
+    ctx.fillRect(x, y, size, size)
+    ctx.restore()
+  }
+
   if (isHead) {
-    ctx.fillStyle = 'rgba(236, 253, 245, 0.9)'
-    const eyeSize = size * 0.16
-    const eyeY = y + size * 0.24
+    drawEyes(ctx, x, y, size, dir, headFlash)
+  }
+}
+
+/** Two eyes offset toward the direction of travel, with a dark pupil. */
+function drawEyes(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  dir: Direction,
+  headFlash: boolean,
+) {
+  const forward = size * 0.17
+  const side = size * 0.17
+  const eyeRadius = size * 0.15
+  const pupilRadius = eyeRadius * 0.48
+
+  // Offsets for both eyes, perpendicular pairs swapped for vertical movement.
+  const offsets: [number, number][] =
+    dir === 'RIGHT'
+      ? [
+          [0.5 + forward, 0.3 - side],
+          [0.5 + forward, 0.3 + side],
+        ]
+      : dir === 'LEFT'
+        ? [
+            [0.5 - forward, 0.3 - side],
+            [0.5 - forward, 0.3 + side],
+          ]
+        : dir === 'UP'
+          ? [
+              [0.5 - side, 0.3 - forward],
+              [0.5 + side, 0.3 - forward],
+            ]
+          : [
+              [0.5 - side, 0.3 + forward],
+              [0.5 + side, 0.3 + forward],
+            ]
+
+  const look = size * 0.045
+  const lookOffset: [number, number] =
+    dir === 'RIGHT'
+      ? [look, 0]
+      : dir === 'LEFT'
+        ? [-look, 0]
+        : dir === 'UP'
+          ? [0, -look]
+          : [0, look]
+
+  ctx.fillStyle = headFlash ? 'rgba(255, 241, 242, 0.95)' : 'rgba(236, 253, 245, 0.95)'
+  for (const [ox, oy] of offsets) {
     ctx.beginPath()
-    ctx.arc(x + size * 0.34, eyeY, eyeSize, 0, Math.PI * 2)
-    ctx.arc(x + size * 0.68, eyeY, eyeSize, 0, Math.PI * 2)
+    ctx.arc(x + ox * size, y + oy * size, eyeRadius, 0, Math.PI * 2)
     ctx.fill()
   }
+
+  ctx.fillStyle = 'rgba(2, 6, 23, 0.9)'
+  for (const [ox, oy] of offsets) {
+    ctx.beginPath()
+    ctx.arc(
+      x + ox * size + lookOffset[0],
+      y + oy * size + lookOffset[1],
+      pupilRadius,
+      0,
+      Math.PI * 2,
+    )
+    ctx.fill()
+  }
+}
+
+/** Soft radial tint in the skin's accent colour, anchored near the top. */
+function drawAmbientGlow(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  palette: SkinPalette,
+) {
+  const cx = width / 2
+  const cy = height * 0.32
+  const radius = Math.max(width, height) * 0.75
+  const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius)
+  gradient.addColorStop(0, withAlpha(palette.head, 0.09))
+  gradient.addColorStop(0.6, withAlpha(palette.body, 0.03))
+  gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, width, height)
+}
+
+/** Darkens the corners so the board edges recede and the snake reads clearly. */
+function drawVignette(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  const gradient = ctx.createRadialGradient(
+    width / 2,
+    height / 2,
+    Math.min(width, height) * 0.35,
+    width / 2,
+    height / 2,
+    Math.max(width, height) * 0.75,
+  )
+  gradient.addColorStop(0, 'rgba(0, 0, 0, 0)')
+  gradient.addColorStop(1, 'rgba(2, 6, 23, 0.55)')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, width, height)
 }
 
 function drawFood(
@@ -263,14 +379,31 @@ function drawFood(
 
   ctx.shadowColor = withAlpha(color, 0.9)
   ctx.shadowBlur = 16
+  // Drop shadow underneath makes the food sit above the grid.
+  ctx.fillStyle = 'rgba(2, 6, 23, 0.45)'
+  roundRect(ctx, x + size * 0.08, y + size * 0.12, size, size, size * 0.3)
+  ctx.fill()
+
   ctx.fillStyle = color
   roundRect(ctx, x, y, size, size, size * 0.3)
   ctx.fill()
   ctx.shadowBlur = 0
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)'
+  // Glossy highlight: a bright upper-left spot over a softer sheen.
+  ctx.save()
+  roundRect(ctx, x, y, size, size, size * 0.3)
+  ctx.clip()
+  const sheen = ctx.createLinearGradient(x, y, x, y + size)
+  sheen.addColorStop(0, 'rgba(255, 255, 255, 0.4)')
+  sheen.addColorStop(0.5, 'rgba(255, 255, 255, 0.05)')
+  sheen.addColorStop(1, 'rgba(0, 0, 0, 0.12)')
+  ctx.fillStyle = sheen
+  ctx.fillRect(x, y, size, size)
+  ctx.restore()
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)'
   ctx.beginPath()
-  ctx.arc(x + size * 0.3, y + size * 0.3, size * 0.12, 0, Math.PI * 2)
+  ctx.arc(x + size * 0.32, y + size * 0.28, size * 0.13, 0, Math.PI * 2)
   ctx.fill()
 }
 
@@ -344,16 +477,89 @@ function drawPowerUp(ctx: CanvasRenderingContext2D, powerUp: PowerUp, cell: numb
   const size = cell * 0.5
   ctx.shadowColor = glow
   ctx.shadowBlur = 14
-  drawStar(ctx, cx, cy, size, color)
+  drawPowerUpShape(ctx, powerUp.kind, cx, cy, size, color)
   ctx.shadowBlur = 0
 
   ctx.fillStyle = 'rgba(250, 245, 255, 0.95)'
-  ctx.font = `bold ${Math.round(cell * 0.28)}px Inter, sans-serif`
+  ctx.font = `bold ${Math.round(cell * 0.26)}px Inter, sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(kindLabel(powerUp.kind), cx, cy + size * 1.45)
+  ctx.fillText(kindLabel(powerUp.kind), cx, cy + size * 1.5)
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
+}
+
+/**
+ * Each power-up gets its own silhouette so players can identify it at a glance
+ * without relying on the colour alone.
+ */
+function drawPowerUpShape(
+  ctx: CanvasRenderingContext2D,
+  kind: PowerUpKind,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+) {
+  ctx.fillStyle = color
+  switch (kind) {
+    case 'shield': {
+      // Classic heater-shield outline with a notched base.
+      const w = size * 0.92
+      const h = size * 1.08
+      const top = cy - h / 2
+      ctx.beginPath()
+      ctx.moveTo(cx, top)
+      ctx.lineTo(cx + w / 2, top + h * 0.22)
+      ctx.lineTo(cx + w / 2, top + h * 0.62)
+      ctx.quadraticCurveTo(cx + w / 2, top + h * 0.88, cx, top + h)
+      ctx.quadraticCurveTo(cx - w / 2, top + h * 0.88, cx - w / 2, top + h * 0.62)
+      ctx.lineTo(cx - w / 2, top + h * 0.22)
+      ctx.closePath()
+      ctx.fill()
+      break
+    }
+    case 'double': {
+      // Two stacked arrows pointing right.
+      const arrow = (offsetY: number) => {
+        ctx.beginPath()
+        ctx.moveTo(cx - size * 0.42, cy + offsetY - size * 0.16)
+        ctx.lineTo(cx + size * 0.08, cy + offsetY - size * 0.16)
+        ctx.lineTo(cx + size * 0.08, cy + offsetY - size * 0.32)
+        ctx.lineTo(cx + size * 0.46, cy + offsetY)
+        ctx.lineTo(cx + size * 0.08, cy + offsetY + size * 0.32)
+        ctx.lineTo(cx + size * 0.08, cy + offsetY + size * 0.16)
+        ctx.lineTo(cx - size * 0.42, cy + offsetY + size * 0.16)
+        ctx.closePath()
+        ctx.fill()
+      }
+      arrow(-size * 0.24)
+      arrow(size * 0.24)
+      break
+    }
+    default: {
+      // Hourglass for slow.
+      const w = size * 0.78
+      const h = size * 1.02
+      const top = cy - h / 2
+      const midY = cy
+      ctx.beginPath()
+      ctx.moveTo(cx - w / 2, top)
+      ctx.lineTo(cx + w / 2, top)
+      ctx.lineTo(cx + w * 0.16, midY)
+      ctx.lineTo(cx + w / 2, top + h)
+      ctx.lineTo(cx - w / 2, top + h)
+      ctx.lineTo(cx - w * 0.16, midY)
+      ctx.closePath()
+      ctx.fill()
+      // Cap bars top and bottom.
+      roundRect(ctx, cx - w * 0.62, top - size * 0.1, w * 1.24, size * 0.16, size * 0.08)
+      ctx.fill()
+      roundRect(ctx, cx - w * 0.62, top + h - size * 0.06, w * 1.24, size * 0.16, size * 0.08)
+      ctx.fill()
+      break
+    }
+  }
 }
 
 function kindStyle(kind: PowerUpKind): { color: string; glow: string; label: string } {
@@ -402,14 +608,20 @@ function drawParticles(ctx: CanvasRenderingContext2D, particles: Particle[], cel
 }
 
 function drawFloats(ctx: CanvasRenderingContext2D, floats: FloatText[], cell: number) {
-  ctx.font = `bold ${Math.round(cell * 0.9)}px Inter, sans-serif`
+  const font = `bold ${Math.round(cell * 0.82)}px Inter, sans-serif`
+  ctx.font = font
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
+  ctx.lineJoin = 'round'
   for (const f of floats) {
     const ratio = f.age / f.duration
     const x = f.x * cell
     const y = f.y * cell - ratio * cell * 1.2
     ctx.globalAlpha = Math.max(0, 1 - ratio)
+    // Dark stroke first so the number stays legible over food or the snake.
+    ctx.strokeStyle = 'rgba(2, 6, 23, 0.85)'
+    ctx.lineWidth = Math.max(3, cell * 0.12)
+    ctx.strokeText(f.text, x, y)
     ctx.fillStyle = f.color ?? '#6ee7b7'
     ctx.fillText(f.text, x, y)
   }

@@ -133,6 +133,7 @@ export default function App() {
           >
             <BoardRenderer
               skinId={game.inventory.equippedSkin}
+              directionRef={game.directionRef}
               snakeRef={game.snakeRef}
               prevSnakeRef={game.prevSnakeRef}
               foodRef={game.foodRef}

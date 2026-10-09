@@ -26,7 +26,6 @@ import { getVolume, isMuted, setMuted as persistMuted, setVolume as persistVolum
 import * as music from '../audio/music.ts'
 import {
   DEATH_COLORS,
-  EAT_COLORS,
   GOLDEN_COLORS,
   POWERUP_COLORS,
   SHIELD_COLORS,
@@ -39,6 +38,7 @@ import { loadAchievements, saveAchievements, checkAchievements } from '../core/a
 import { addXp, updatePlayStreak } from '../core/progression.ts'
 import { earnGameCoins, earnFoodCoins, earnWinCoins, earnAchievementCoins } from '../core/currency.ts'
 import { purchaseItem as purchaseShopItem, getItemById, isItemOwned, setEquippedSkin } from '../core/shop.ts'
+import { getSkinColors } from '../core/skins.ts'
 import type {
   Direction,
   GameScreen,
@@ -111,6 +111,7 @@ export interface SnakeGameController {
   toggleWrap: () => void
   toggleMusic: () => void
   setVolume: (v: number) => void
+  directionRef: React.MutableRefObject<Direction>
   equipSkin: (skinId: string) => void
   purchaseItem: (itemId: string) => boolean
 }
@@ -179,6 +180,12 @@ export function useSnakeGame(): SnakeGameController {
   const [progression, setProgression] = useState(storage.loadProgression)
   const [currency, setCurrency] = useState(storage.loadCurrency)
   const [inventory, setInventory] = useState(storage.loadInventory)
+  // Mirror of `inventory` for the game loop, which reads skin data every tick
+  // and must not re-subscribe just because the player equipped something.
+  const inventoryRef = useRef(inventory)
+  useEffect(() => {
+    inventoryRef.current = inventory
+  }, [inventory])
 
   const equipSkin = useCallback((skinId: string) => {
     setInventory((prev) => {
@@ -492,7 +499,9 @@ export function useSnakeGame(): SnakeGameController {
       foodsEatenRef.current += 1
       const ateAt = foodRef.current ?? result.snake[0]
       particlesRef.current.push(
-        ...spawnBurst(ateAt.x + 0.5, ateAt.y + 0.5, { colors: EAT_COLORS }),
+        ...spawnBurst(ateAt.x + 0.5, ateAt.y + 0.5, {
+          colors: getSkinColors(inventoryRef.current.equippedSkin).particles,
+        }),
       )
       floatsRef.current.push(
         spawnFloat(
@@ -725,6 +734,7 @@ export function useSnakeGame(): SnakeGameController {
     inventory,
     equipSkin,
     purchaseItem,
+    directionRef,
     snakeRef,
     prevSnakeRef,
     foodRef,
