@@ -1,0 +1,108 @@
+# Prompt Generate Referensi Gambar
+
+Buka **https://gemini.google.com** → New Chat → tempel prompt di bawah.
+
+> ⚠️ Gemini sering render teks panjang dengan tidak akurat di gambar. **Itu normal.**
+> Yang penting: layout, warna, proporsi, dan bentuk. Teks asli tetap pakai font dari kode.
+
+---
+
+## Gambar 1 — HUD (`hud-mockup.png`)
+
+```
+Buat mockup UI untuk HUD game snake, gaya "premium mobile game".
+
+Susunan:
+- Baris atas: 3 stat card glassmorphism (SKOR, PANJANG, BEST) dengan nilai besar
+- Bawahnya: 3 effect chip (perisai biru, kura-kura kuning, "2x" ungu) dengan progress bar yang sedang menyusut
+- Ujung kanan baris atas: 2 icon round (speaker, pause)
+
+Background: #030712 gelap. Accent: emerald #10b981. Font: Inter/Sora.
+Style: frosted glass card, border tipis, subtle glow, soft shadow.
+Ukuran: 1440 x 260px, landscape, flat design, high fidelity UI mockup, clean modern.
+```
+
+---
+
+## Gambar 2 — Power-up Icons (`powerup-icons.png`)
+
+```
+Buat set 3 icon power-up game dalam bentuk bulat glowing, side by side:
+
+1. Perisai cyan biru (#38bdf8) dengan efek shine
+2. Kura-kura / lambang jam, warna kuning amber
+3. Teks "×2" besar, warna ungu magenta (#e879f9)
+
+Setiap icon: bentuk bintang dengan radial glow, ada label kecil di bawahnya.
+Background: #030712 gelap.
+Style: neon game UI, high fidelity, 1200x400px, rata tengah.
+```
+
+---
+
+## Gambar 3 — Menu (`menu-mockup.png`)
+
+```
+Buat mockup main menu game snake bergaya modern dark gaming.
+
+Susunan dari atas:
+- Judul besar "SNAKE X" dengan efek glow emerald
+- Panel settings berisi: toggle musik, slider volume, toggle mode tembus dinding, pemilih bahasa
+- Baris 5 tombol kecil: Statistik, Pencapaian, Progres, Shop, Skin
+- Tombol besar "Mulai Main" berwarna emerald dengan pulsing glow
+
+Background: #030712 dengan pola grid halus samar.
+Font Sora untuk judul, Inter untuk teks.
+Ukuran: 1080x1920 portrait, mobile app mockup, high fidelity, clean.
+```
+
+---
+
+## Gambar 4 (opsional) — Efek Power-up Aktif (`powerup-active.png`)
+
+```
+Buat mockup efek aktif power-up di atas game board snake.
+
+Tampilkan 3 variasi secara berdampingan:
+1. Efek SLOW: board dengan overlay biru transparan + ikon kura-kura di atas
+2. Efek DOUBLE: board dengan overlay ungu transparan + ikon "×2"Berkilau
+3. Efek SHIELD: kepala ular dikelilingi cincin biru bercahaya
+
+Background board: #030712 dengan grid halus. Ular warna emerald #10b981.
+Gaya efek: glow lembut, pulse animation frame, additive blend.
+Ukuran: 1400x600px, high fidelity game UI concept art.
+```
+
+---
+
+## Gambar 5 (opsional) — Combo Milestone (`combo-milestone.png`)
+
+```
+Buat mockup efek combo di game snake.
+
+Tampilkan 3 frame berurutan:
+1. Combo ×3: teks oranye "×3" membesar di tengah dengan partikel
+2. Combo ×4: teks oranye lebih besar, lebih banyak partikel, sedikit screen glow
+3. Combo ×5: teks emas besar "×5" dengan ledakan partikel emas + radial glow kuat
+
+Background: #030712, board ular hijau samar di belakang.
+Gaya: bold, impactful, particle burst, additive glow.
+Ukuran: 1400x500px, high fidelity game VFX concept.
+```
+
+---
+
+## Setelah Semua Gambar Selesai
+
+Simpan ke:
+
+```
+D:\web\projects\Game\snake-x\assets\refs\
+├── hud-mockup.png
+├── powerup-icons.png
+├── menu-mockup.png
+├── powerup-active.png     (opsional)
+└── combo-milestone.png    (opsional)
+```
+
+Lalu bilang ke saya: **"sudah, gambarnya ada di assets/refs"**

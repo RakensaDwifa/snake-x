@@ -34,6 +34,17 @@ export interface Translations {
   restart: string
   menu: string
   go: string
+  // Aria labels (imperative actions, not state descriptions)
+  muteAction: string
+  unmuteAction: string
+  // Effect chips
+  effectShield: string
+  effectShieldDesc: string
+  effectSlow: string
+  effectSlowDesc: string
+  effectDouble: string
+  effectDoubleDesc: string
+  effectActive: string
   // Game Over
   gameOver: string
   won: string
@@ -121,6 +132,15 @@ const translations: Record<Locale, Translations> = {
     restart: '↻ Mulai Ulang',
     menu: 'Menu',
     go: 'MULAI!',
+    muteAction: 'Matikan suara',
+    unmuteAction: 'Nyalakan suara',
+    effectShield: 'Tameng',
+    effectShieldDesc: 'Siap menahan satu hantaman',
+    effectSlow: 'Lambat',
+    effectSlowDesc: 'Waktu melambat',
+    effectDouble: '×2',
+    effectDoubleDesc: 'Skor 2×',
+    effectActive: 'Aktif',
     gameOver: '💀 Game Over',
     won: '🏆 MENANG!',
     newRecord: '🎉 REKOR BARU!',
@@ -209,6 +229,15 @@ const translations: Record<Locale, Translations> = {
     restart: '↻ Restart',
     menu: 'Menu',
     go: 'GO!',
+    muteAction: 'Mute sound',
+    unmuteAction: 'Unmute sound',
+    effectShield: 'Shield',
+    effectShieldDesc: 'Ready to block one hit',
+    effectSlow: 'Slow',
+    effectSlowDesc: 'Slow motion',
+    effectDouble: '×2',
+    effectDoubleDesc: 'Double score',
+    effectActive: 'Active',
     gameOver: '💀 Game Over',
     won: '🏆 YOU WIN!',
     newRecord: '🎉 NEW RECORD!',

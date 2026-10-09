@@ -1,0 +1,85 @@
+# Prompt Analisis Visual — Gemini CLI
+
+## Langkah 1: Masuk ke folder project
+
+```bash
+cd D:\web\projects\Game\snake-x
+gemini
+```
+
+Saat pertama jalan, pilih **"Login with Google"** di browser yang terbuka.
+
+## Langkah 2: Kirim file (copy-paste baris ini di dalam Gemini CLI)
+
+```
+@src/index.css @src/App.tsx @src/render/BoardRenderer.tsx @src/render/particles.ts @src/components/HUD.tsx @src/components/Controls.tsx @src/components/CountdownOverlay.tsx @src/components/screens/SplashScreen.tsx @src/components/screens/MenuScreen.tsx @src/components/screens/PauseScreen.tsx @src/components/screens/GameOverScreen.tsx @src/components/screens/OnboardingOverlay.tsx @src/core/constants.ts @src/core/skins.ts @package.json
+```
+
+## Langkah 3: Kirim prompt analisis
+
+```
+Kamu senior game UI/UX designer + Canvas developer.
+Saya attach source code game snake (React 19 + Vite + Tailwind v4 + Canvas 2D + Framer Motion).
+
+TASK: Buat proposal "VISUAL POLISH" untuk game ini.
+
+Konteks:
+- Game board: canvas 2D, 25x25 grid, digambar 60fps dengan interpolasi
+- Tema: dark (#030712) + aksen emerald (#10b981)
+- Font: Inter (UI) + Sora (display)
+- Sudah ada: particle burst, screen shake, screen flash, countdown pop,
+  power-up glow, shield ring, confetti di win
+
+Analisis dan jawab:
+
+1. VISUAL HIERARCHY
+   - Elemen apa yang paling "menarik mata"? Apa yang kurang menonjol?
+   - Apakah HUD cukup informatif tanpa memenuhi layar?
+
+2. COLOR & CONTRAST
+   - Palet snake-500 (#10b981) di atas surface-950 (#030712): kontrasnya cukup?
+   - Adakah warna yang tidak konsisten antar komponen?
+
+3. ANIMATION & FEEDBACK
+   - Setiap aksi pemain (makan, nabrak, ambil power-up) punya feedback visual?
+   - Manakah yang terasa kurang "juicy"?
+
+4. CANVAS RENDERING
+   - drawSegment: gradient linear head ke tail. Cukup dalam atau perlu texture?
+   - Food dan power-up: apakah mudah dibedakan sekilas?
+
+OUTPUT FORMAT (wajib):
+Untuk setiap improvement:
+  - Nomor
+  - File + nomor baris
+  - Apa masalahnya
+  - Apa perubahannya (kode/konseptual)
+  - Impact: Tinggi / Sedang / Rendah
+  - Estimasi effort: 15m / 1j / 2-4j
+
+WAJIB: 10 improvement SPESIFIK (bukan nasihat generic seperti "tambahkan animasi").
+WAJIB: Jawab dalam Bahasa Indonesia.
+```
+
+## Langkah 4: Simpan hasil
+
+Salin jawaban Gemini ke file: `assets/refs/analisis-gemini.md`
+
+---
+
+## Alternatif: Analisis Architecture (opsional)
+
+Kalau mau analisis lebih luas, kirim semua file:
+
+```
+@src/
+```
+
+Lalu prompt:
+
+```
+Analisis arsitektur lengkap project ini: pola module, dependency antar file,
+mana yang terlalu besar / perlu dipecah, dan mana yang punya risiko bug.
+Buat tabel: File | Baris | Peran | Rekomendasi.
+Jawab dalam Bahasa Indonesia.
+```

@@ -130,6 +130,7 @@ export default function App() {
             style={{ touchAction: 'none', width: 'min(100%, 28rem, calc(100dvh - 14rem))' }}
           >
             <BoardRenderer
+              skinId={game.inventory.equippedSkin}
               snakeRef={game.snakeRef}
               prevSnakeRef={game.prevSnakeRef}
               foodRef={game.foodRef}

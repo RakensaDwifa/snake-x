@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { renderWithProviders as render, screen, fireEvent } from './testUtils.tsx'
 import { MenuScreen } from '../components/screens/MenuScreen.tsx'
 
 const defaultProps = {
@@ -10,6 +10,15 @@ const defaultProps = {
   musicOn: true,
   wrapMode: false,
   stats: { games: 0, totalFood: 0, maxLength: 0, wins: 0, totalScore: 0, bestCombo: 0, goldEaten: 0, playSeconds: 0 },
+  achievements: new Set<string>(),
+  progression: { xp: 0, level: 1, xpToNext: 100, streakLogin: 0, streakPlay: 0 },
+  currency: { coins: 0, totalEarned: 0, totalSpent: 0 },
+  inventory: {
+    skins: { skin_classic_green: { unlocked: true, source: 'level' } },
+    equippedSkin: 'skin_classic_green',
+    powerUpSlots: 1,
+    equippedPowerUps: [],
+  },
   onSpeed: vi.fn(),
   onStart: vi.fn(),
   onToggleMute: vi.fn(),

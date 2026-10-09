@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { renderWithProviders as render, screen, act } from './testUtils.tsx'
 import { HUD } from '../components/HUD.tsx'
 import type { ActiveEffects } from '../hooks/useSnakeGame.ts'
 
@@ -65,7 +65,7 @@ describe('HUD', () => {
 
   it('renders shield chip inactive by default', () => {
     renderHUD()
-    const shieldChip = screen.getByTitle('Tameng siap menahan satu hantaman')
+    const shieldChip = screen.getByTitle('Siap menahan satu hantaman')
     expect(shieldChip).toHaveClass('opacity-40')
   })
 

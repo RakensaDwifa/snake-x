@@ -102,7 +102,7 @@ export function HUD({
             type="button"
             onClick={onToggleMute}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-800 bg-surface-900/60 text-slate-300 active:scale-90"
-            aria-label={muted ? t.muteOff : t.muteOn}
+            aria-label={muted ? t.unmuteAction : t.muteAction}
           >
             {muted ? '🔇' : '🔊'}
           </button>
@@ -134,7 +134,7 @@ export function HUD({
           ms={0}
           color="bg-sky-400"
           colorBar="bg-sky-400"
-          title={t.legend.shield}
+          title={t.effectShieldDesc}
           paused={paused}
         >
           🛡️
@@ -143,9 +143,9 @@ export function HUD({
           active={activeEffects.slow}
           until={slowUntil}
           ms={slowMs}
-          color="bg-sky-400"
-          colorBar="bg-sky-400"
-          title={t.legend.slow}
+          color="bg-purple-400"
+          colorBar="bg-purple-400"
+          title={t.effectSlowDesc}
           paused={paused}
         >
           🐢
@@ -156,7 +156,7 @@ export function HUD({
           ms={doubleMs}
           color="bg-fuchsia-400"
           colorBar="bg-fuchsia-400"
-          title={t.legend.double}
+          title={t.effectDoubleDesc}
           paused={paused}
         >
           ×2

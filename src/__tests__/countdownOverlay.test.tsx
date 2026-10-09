@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { renderWithProviders as render, screen } from './testUtils.tsx'
 import { CountdownOverlay } from '../components/CountdownOverlay.tsx'
 
 describe('CountdownOverlay', () => {
@@ -23,8 +23,8 @@ describe('CountdownOverlay', () => {
     expect(screen.getByText('1')).toBeInTheDocument()
   })
 
-  it('renders GO! when value is 0', () => {
+  it('renders MULAI! when value is 0', () => {
     render(<CountdownOverlay value={0} />)
-    expect(screen.getByText('GO!')).toBeInTheDocument()
+    expect(screen.getByText('MULAI!')).toBeInTheDocument()
   })
 })

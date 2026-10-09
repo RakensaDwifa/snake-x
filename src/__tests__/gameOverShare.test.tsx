@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { renderWithProviders as render, screen, fireEvent, waitFor } from './testUtils.tsx'
 import { GameOverScreen } from '../components/screens/GameOverScreen.tsx'
 
 const defaultProps = {

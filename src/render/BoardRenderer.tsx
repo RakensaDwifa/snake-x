@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { MutableRefObject } from 'react'
 import { BONUS_FOOD_LIFETIME_MS, GRID_SIZE } from '../core/constants.ts'
+import { getSkinColors } from '../core/skins.ts'
 import { shakeOffset, updateFloats, updateParticles } from './particles.ts'
 import type { FloatText, Particle } from './particles.ts'
 import type { Position, PowerUp, PowerUpKind } from '../types/game.ts'
 
 export interface BoardRendererProps {
+  skinId: string
   snakeRef: MutableRefObject<Position[]>
   prevSnakeRef: MutableRefObject<Position[]>
   foodRef: MutableRefObject<Position | null>
@@ -27,6 +29,7 @@ export interface BoardRendererProps {
  * smoothly between grid cells.
  */
 export function BoardRenderer({
+  skinId,
   snakeRef,
   prevSnakeRef,
   foodRef,
@@ -83,13 +86,14 @@ export function BoardRenderer({
 
       const cell = width / GRID_SIZE
       const gap = Math.max(0.5, cell * 0.06)
+      const palette = getSkinColors(skinId)
 
       ctx.clearRect(0, 0, width, height)
       drawGrid(ctx, width, height, cell)
 
       const foodCell = foodRef.current
       if (foodCell) {
-        drawFood(ctx, foodCell, cell, now)
+        drawFood(ctx, foodCell, cell, now, palette.food)
       }
 
       const bonusCell = bonusFoodRef.current
@@ -110,7 +114,7 @@ export function BoardRenderer({
         const old = prev[i] ?? curr
         const px = lerp(old.x, curr.x, interp) * cell + gap / 2
         const py = lerp(old.y, curr.y, interp) * cell + gap / 2
-        drawSegment(ctx, px, py, cell - gap, i, cur.length, flashing && i === 0)
+        drawSegment(ctx, px, py, cell - gap, i, cur.length, flashing && i === 0, palette)
       }
 
       if (shieldFreezeUntilRef.current > now) {
@@ -137,6 +141,7 @@ export function BoardRenderer({
       prevSnakeRef,
       shakeRef,
       shieldFreezeUntilRef,
+      skinId,
       snakeRef,
     ],
   )
@@ -150,6 +155,44 @@ export function BoardRenderer({
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t
+}
+
+/** Skin colors resolved from the equipped skin id (falls back to classic). */
+interface SkinPalette {
+  head: string
+  body: string
+  tail: string
+  food: string
+  particles: string[]
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const raw = hex.replace('#', '')
+  const full =
+    raw.length === 3
+      ? raw
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : raw
+  const n = Number.parseInt(full, 16)
+  if (!Number.isFinite(n)) return [255, 255, 255]
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+function withAlpha(hex: string, alpha: number): string {
+  const [r, g, b] = hexToRgb(hex)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
+/** Linear blend between two hex colors; `t` 0 = from, 1 = to. */
+function mixHex(from: string, to: string, t: number): string {
+  const [r1, g1, b1] = hexToRgb(from)
+  const [r2, g2, b2] = hexToRgb(to)
+  const r = Math.round(lerp(r1, r2, t))
+  const g = Math.round(lerp(g1, g2, t))
+  const b = Math.round(lerp(b1, b2, t))
+  return `rgb(${r},${g},${b})`
 }
 
 function drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number, cell: number) {
@@ -179,19 +222,18 @@ function drawSegment(
   index: number,
   length: number,
   headFlash: boolean,
+  palette: SkinPalette,
 ) {
   const ratio = Math.min(1, index / Math.max(1, length - 1))
   const isHead = index === 0
 
-  const r = Math.round(lerp(34, 6, ratio))
-  const g = Math.round(lerp(197, 94, ratio))
-  const b = Math.round(lerp(94, 52, ratio))
-
   if (isHead) {
-    ctx.shadowColor = 'rgba(52, 211, 153, 0.9)'
+    ctx.shadowColor = withAlpha(palette.head, 0.9)
     ctx.shadowBlur = 14
   }
-  ctx.fillStyle = headFlash ? 'rgba(244, 63, 94, 0.9)' : `rgb(${r},${g},${b})`
+  ctx.fillStyle = headFlash
+    ? 'rgba(244, 63, 94, 0.9)'
+    : mixHex(palette.head, palette.tail, ratio)
   roundRect(ctx, x, y, size, size, size * 0.32)
   ctx.fill()
   ctx.shadowBlur = 0
@@ -207,15 +249,21 @@ function drawSegment(
   }
 }
 
-function drawFood(ctx: CanvasRenderingContext2D, food: Position, cell: number, now: number) {
+function drawFood(
+  ctx: CanvasRenderingContext2D,
+  food: Position,
+  cell: number,
+  now: number,
+  color: string,
+) {
   const pulse = 1 + Math.sin(now / 300) * 0.08
   const size = cell * 0.62 * pulse
   const x = food.x * cell + (cell - size) / 2
   const y = food.y * cell + (cell - size) / 2
 
-  ctx.shadowColor = 'rgba(244, 63, 94, 0.9)'
+  ctx.shadowColor = withAlpha(color, 0.9)
   ctx.shadowBlur = 16
-  ctx.fillStyle = '#f43f5e'
+  ctx.fillStyle = color
   roundRect(ctx, x, y, size, size, size * 0.3)
   ctx.fill()
   ctx.shadowBlur = 0
