@@ -146,4 +146,17 @@ describe('MenuScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: /Neon Glow/i }))
     expect(onSelectSkin).toHaveBeenCalledWith('skin_neon')
   })
+
+  it('does not render a blocking modal layer while every panel is closed', () => {
+    // Regression: an always-mounted full-screen overlay sat above the menu and
+    // swallowed every click, so "Mulai Main" could not be pressed.
+    const { container } = render(<MenuScreen {...defaultProps} />)
+    expect(container.querySelector('.absolute.inset-0.z-10')).toBeNull()
+  })
+
+  it('mounts the modal layer once a panel is opened', () => {
+    const { container } = render(<MenuScreen {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: /Statistik/i }))
+    expect(container.querySelector('.absolute.inset-0.z-10')).not.toBeNull()
+  })
 })

@@ -309,6 +309,9 @@ export function MenuScreen({
 
       {showOnboarding && <OnboardingOverlay isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} onFinish={finishOnboarding} />}
 
+      {/* Only mount the modal layer while something is open — an always-mounted
+          overlay div would sit on top of the menu and swallow every click. */}
+      {(showStats || showAchievements || showShop || showSkins) && (
       <div className="absolute inset-0 z-10">
       {showStats && (
         <motion.div
@@ -449,6 +452,7 @@ export function MenuScreen({
 
       {showOnboarding && <OnboardingOverlay isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} onFinish={finishOnboarding} />}
       </div>
+      )}
     </motion.div>
   )
 }
