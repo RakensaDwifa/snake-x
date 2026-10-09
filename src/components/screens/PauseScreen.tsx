@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { GlassCard, SCRIM } from '../GlassCard.tsx'
 import { useLocale } from '../../lib/locale.tsx'
 
 interface PauseScreenProps {
@@ -15,34 +16,48 @@ export function PauseScreen({ onResume, onRestart, onMenu }: PauseScreenProps) {
       initial={{ opacity: 0, scale: 0.92 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.25 }}
-      className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className={SCRIM}
     >
-      <div className="mx-4 w-full max-w-xs rounded-2xl border border-surface-800 bg-surface-900/95 p-6 text-center">
-        <h2 className="font-display text-2xl font-bold text-white">{t.paused}</h2>
-        <div className="mt-5 flex flex-col gap-2.5">
+      <GlassCard className="mx-4 w-full max-w-xs p-7 text-center">
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+          className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-snake-500/30 bg-snake-500/10 text-2xl"
+          aria-hidden
+        >
+          ⏸
+        </motion.div>
+
+        <h2 className="font-display text-2xl font-bold tracking-tight text-white">
+          {t.paused}
+        </h2>
+        <p className="mt-1 text-xs text-slate-400">{t.pausedHint}</p>
+
+        <div className="mt-6 flex flex-col gap-2.5">
           <button
             type="button"
             onClick={onResume}
-            className="rounded-xl bg-snake-500 px-6 py-3 font-bold text-surface-950 transition hover:bg-snake-400 active:scale-95"
+            className="w-full rounded-2xl bg-snake-500 px-6 py-3.5 font-extrabold text-surface-950 shadow-[0_0_24px_rgba(16,185,129,0.4)] transition hover:bg-snake-400 active:scale-[0.98]"
           >
             {t.resume}
           </button>
           <button
             type="button"
             onClick={onRestart}
-            className="rounded-xl border border-surface-700 bg-surface-950/60 px-6 py-3 font-semibold text-slate-200 transition hover:border-slate-500 active:scale-95"
+            className="w-full rounded-2xl border border-surface-700 bg-surface-950/60 px-6 py-3 font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-surface-900 active:scale-[0.98]"
           >
             {t.restart}
           </button>
           <button
             type="button"
             onClick={onMenu}
-            className="rounded-xl border border-surface-800 bg-surface-950/40 px-6 py-3 font-semibold text-slate-400 transition hover:text-slate-200 active:scale-95"
+            className="w-full rounded-2xl border border-transparent px-6 py-3 font-semibold text-slate-500 transition hover:bg-surface-950/60 hover:text-slate-300 active:scale-[0.98]"
           >
             {t.menu}
           </button>
         </div>
-      </div>
+      </GlassCard>
     </motion.div>
   )
 }

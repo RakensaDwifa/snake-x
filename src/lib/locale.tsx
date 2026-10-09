@@ -50,6 +50,7 @@ export interface Translations {
   effectDoubleDesc: string
   effectActive: string
   comboLabel: string
+  pausedHint: string
   purchaseSuccess: string
   purchaseFailed: string
   skinEquipped: string
@@ -154,6 +155,7 @@ const translations: Record<Locale, Translations> = {
     effectDoubleDesc: 'Skor 2×',
     effectActive: 'Aktif',
     comboLabel: 'Combo',
+    pausedHint: 'Taruh jeda, ular menunggumu',
     purchaseSuccess: 'Berhasil dibeli! 🎉',
     purchaseFailed: 'Koin tidak cukup',
     skinEquipped: 'Skin dipakai ✅',
@@ -259,6 +261,7 @@ const translations: Record<Locale, Translations> = {
     effectDoubleDesc: 'Double score',
     effectActive: 'Active',
     comboLabel: 'Combo',
+    pausedHint: 'Paused — the snake misses you',
     purchaseSuccess: 'Purchased! 🎉',
     purchaseFailed: 'Not enough coins',
     skinEquipped: 'Skin equipped ✅',

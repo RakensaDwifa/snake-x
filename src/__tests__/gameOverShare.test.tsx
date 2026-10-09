@@ -110,4 +110,36 @@ describe('GameOverScreen share', () => {
       expect(shareBtn).toHaveTextContent('📋 Bagikan (gagal)')
     })
   })
+
+  it('shows a skull badge on loss and a trophy on win', () => {
+    const { unmount } = render(<GameOverScreen {...defaultProps} />)
+    expect(screen.getByText('💀')).toBeInTheDocument()
+    unmount()
+    render(<GameOverScreen {...defaultProps} won />)
+    expect(screen.getByText('🏆')).toBeInTheDocument()
+  })
+
+  it('puts restart as the primary action above share', () => {
+    render(<GameOverScreen {...defaultProps} />)
+    const buttons = screen.getAllByRole('button')
+    const names = buttons.map((b) => b.textContent?.trim() ?? '')
+    const restartIdx = names.findIndex((n) => /Mulai Ulang/i.test(n))
+    const shareIdx = names.findIndex((n) => /Bagikan/i.test(n))
+    expect(restartIdx).toBeGreaterThanOrEqual(0)
+    expect(shareIdx).toBeGreaterThanOrEqual(0)
+    // Restart is the visually dominant action, so it must come first.
+    expect(restartIdx).toBeLessThan(shareIdx)
+  })
+
+  it('formats scores with locale separators', () => {
+    render(<GameOverScreen {...defaultProps} score={145230} length={1200} highScore={987654} scores={[]} />)
+    expect(screen.getByText('145.230')).toBeInTheDocument()
+    expect(screen.getByText('1.200')).toBeInTheDocument()
+    expect(screen.getByText('987.654')).toBeInTheDocument()
+  })
+
+  it('hides the top-scores list when the player wins', () => {
+    render(<GameOverScreen {...defaultProps} won />)
+    expect(screen.queryByText(/Skor Teratas/i)).not.toBeInTheDocument()
+  })
 })
